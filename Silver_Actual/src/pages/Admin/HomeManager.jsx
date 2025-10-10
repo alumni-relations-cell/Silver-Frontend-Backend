@@ -1,0 +1,166 @@
+import { useEffect, useState } from "react";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+// FileUploadButton Component
+const FileUploadButton = ({ file, setFile }) => {
+  const [fileName, setFileName] = useState("");
+
+  const handleChange = (e) => {
+    if (e.target.files.length > 0) {
+      setFile(e.target.files[0]);
+      setFileName(e.target.files[0].name);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-3">
+      <input
+        type="file"
+        id="file-upload"
+        className="hidden"
+        onChange={handleChange}
+      />
+      <label
+        htmlFor="file-upload"
+        className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-white font-semibold rounded cursor-pointer hover:bg-gray-700 transition-colors"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-5 w-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 12v8m0 0l-4-4m4 4l4-4m0-6V4m0 0l-4 4m4-4l4 4"
+          />
+        </svg>
+        Choose File
+      </label>
+      {fileName && <span className="text-gray-300 text-sm truncate max-w-xs">{fileName}</span>}
+    </div>
+  );
+};
+
+const AdminHomeImages = () => {
+  const [images, setImages] = useState([]);
+  const [file, setFile] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [category, setCategory] = useState("home_announcement");
+  const token = localStorage.getItem("adminToken");
+
+  const fetchImages = async () => {
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/admin/images?category=${category}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!res.ok) throw new Error("Failed to load images");
+      const data = await res.json();
+      setImages(data);
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!file) return toast.warn("Please select a file first!");
+    setLoading(true);
+
+    const formData = new FormData();
+    formData.append("image", file);
+    formData.append("category", category);
+
+    try {
+      const res = await fetch("http://localhost:5000/api/admin/images/upload", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Upload failed");
+
+      toast.success("✅ Image uploaded successfully!");
+      setFile(null);
+      fetchImages();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete this image permanently?")) return;
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/admin/images/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Delete failed");
+
+      toast.success("🗑️ Image deleted!");
+      fetchImages();
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
+  useEffect(() => {
+    fetchImages();
+  }, [category]);
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-4">Home Page Images</h2>
+
+      <div className="flex items-center gap-3 mb-4">
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          className="border px-2 py-1 rounded bg-gray-800 text-white"
+        >
+          <option value="home_announcement">🏠 Announcements</option>
+          <option value="home_memories">🏠 Memories</option>
+        </select>
+
+        <FileUploadButton file={file} setFile={setFile} />
+
+        <button
+          onClick={handleUpload}
+          className="bg-orange-500 hover:bg-orange-600 px-4 py-2 rounded font-semibold"
+          disabled={loading}
+        >
+          {loading ? "Uploading..." : "Upload"}
+        </button>
+      </div>
+
+      <div className="grid grid-cols-4 gap-4">
+        {images.map((img) => (
+          <div key={img._id} className="bg-gray-800 p-3 rounded relative">
+            <img src={img.url} alt="uploaded" className="rounded w-full" />
+            <button
+              onClick={() => handleDelete(img._id)}
+              className="mt-2 w-full bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
+            >
+              Delete
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Toast container */}
+      <ToastContainer position="top-right" autoClose={3000} />
+    </div>
+  );
+};
+
+export default AdminHomeImages;
