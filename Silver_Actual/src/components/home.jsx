@@ -13,24 +13,18 @@ function Home() {
    *  Fetch images from backend
    * ------------------------------------------------- */
   useEffect(() => {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
     // Posters
-    fetch("http://localhost:5000/api/admin/images?category=home_announcement", {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
+    fetch("http://localhost:5000/api/admin/images?category=home_announcement", { headers })
       .then((res) => res.json())
-      .then((data) =>
-        setPosterImages([...new Set(data.map((img) => img.url))]) // remove duplicates
-      )
+      .then((data) => setPosterImages([...new Set(data.map((img) => img.url))]))
       .catch((err) => console.error("Error fetching poster images:", err));
 
     // Memories
-    fetch("http://localhost:5000/api/admin/images?category=home_memories", {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
+    fetch("http://localhost:5000/api/admin/images?category=home_memories", { headers })
       .then((res) => res.json())
-      .then((data) =>
-        setJubileeImages([...new Set(data.map((img) => img.url))]) // remove duplicates
-      )
+      .then((data) => setJubileeImages([...new Set(data.map((img) => img.url))]))
       .catch((err) => console.error("Error fetching memories images:", err));
   }, []);
 
@@ -58,19 +52,55 @@ function Home() {
   }, []);
 
   /* -------------------------------------------------
+   *  Custom Arrows
+   * ------------------------------------------------- */
+  const NextArrow = ({ onClick }) => (
+    <div
+      className="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 z-20 cursor-pointer bg-[#f4f4f400] hover:bg-[#00000030] p-3 rounded-full shadow-md transition-transform duration-200 hover:scale-110"
+      onClick={onClick}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="white" className="w-5 h-5 sm:w-6 sm:h-6">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+      </svg>
+    </div>
+  );
+
+  const PrevArrow = ({ onClick }) => (
+    <div
+      className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 z-20 cursor-pointer bg-[#f4f4f400] hover:bg-[#00000030] p-3 rounded-full shadow-md transition-transform duration-200 hover:scale-110"
+      onClick={onClick}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="white" className="w-5 h-5 sm:w-6 sm:h-6">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+      </svg>
+    </div>
+  );
+
+  /* -------------------------------------------------
    *  Slider settings
    * ------------------------------------------------- */
   const posterSettings = {
     dots: true,
     infinite: true,
-    speed: 500,
+    speed: 600,
     autoplay: true,
     autoplaySpeed: 4000,
     slidesToShow: 1,
     slidesToScroll: 1,
-    arrows: true,
+    nextArrow: <NextArrow />,
+    prevArrow: <PrevArrow />,
     centerMode: true,
     centerPadding: "0px",
+    responsive: [
+      {
+        breakpoint: 640, // mobile
+        settings: {
+          centerMode: false, // disable center mode on small screens
+          arrows: true,      // ensure arrows visible
+          dots: true,
+        },
+      },
+    ],
   };
 
   const jubileeSettings = {
@@ -78,15 +108,13 @@ function Home() {
     infinite: true,
     speed: 500,
     autoplay: true,
-    autoplaySpeed: 2000,
+    autoplaySpeed: 2500,
     slidesToShow: 3,
     slidesToScroll: 1,
     arrows: false,
     responsive: [
-      {
-        breakpoint: 768,
-        settings: { slidesToShow: 1 },
-      },
+      { breakpoint: 1024, settings: { slidesToShow: 2 } },
+      { breakpoint: 768, settings: { slidesToShow: 1 } },
     ],
   };
 
@@ -101,95 +129,109 @@ function Home() {
     { href: "/meetourteam", text: "Meet ARC Team" },
   ];
 
+  /* -------------------------------------------------
+   *  Component Layout
+   * ------------------------------------------------- */
   return (
     <>
       <div id="background-container"></div>
 
       <div className="page-content">
         {/* Hero Section */}
-        <div className="relative h-[75vh] w-full flex flex-col justify-center items-center text-white text-center p-4 bg-[rgba(31,31,31,0.2)]">
-          <h1 className="text-4xl md:text-6xl font-extrabold mb-4">
+        <section className="relative h-[70vh] sm:h-[75vh] md:h-[80vh] flex flex-col justify-center items-center text-white text-center p-4">
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold mb-4 leading-tight">
             Silver Jubilee Celebration
           </h1>
-          <p className="text-lg md:text-2xl font-medium text-[#828A95]">
+          <p className="text-base sm:text-lg md:text-2xl font-medium text-[#C5CBD3]">
             25 Years of Legacy | Reunite | Relive | Rejoice
           </p>
-        </div>
+        </section>
 
         {/* Poster Slideshow */}
-        <div className="w-[90%] mx-auto my-12">
-          <h2 className="text-3xl font-bold text-center mb-8 text-[#EE634F]">
+        <section className="relative w-[95%] sm:w-[90%] mx-auto my-8 sm:my-12">
+          <h2 className="text-l sm:text-xl md:text-2xl xl:text-3xl font-bold text-center mb-6 sm:mb-8 text-[#EE634F]">
             Announcements & Posters
           </h2>
+
           <Slider {...posterSettings}>
             {posterImages.map((src, idx) => (
-              <div key={idx} className="px-4">
-                <div className="rounded-2xl overflow-visible shadow-xl border-2 border-[#352e2e] bg-black p-0">
+              <div key={idx} className="px-2 sm:px-4">
+                <div className="rounded-xl sm:rounded-2xl overflow-hidden shadow-lg sm:shadow-xl border border-[#352e2e] bg-black">
                   <img
                     src={src}
                     alt={`Poster ${idx + 1}`}
-                    className="w-full h-[450px] object-cover rounded-xl"
+                    className="
+                      w-full 
+                      h-[200px]
+                      sm:h-[320px] 
+                      md:h-[450px] 
+                      lg:h-[550px] 
+                      xl:h-[650px]
+                      object-cover 
+                      rounded-xl 
+                      transition-transform 
+                      duration-300 
+                      hover:scale-[1.01]
+                    "
                   />
                 </div>
               </div>
             ))}
           </Slider>
-        </div>
+        </section>
 
         {/* Marquee */}
-        <div className="bg-[rgba(31,31,31,0.95)] py-2 my-7 overflow-hidden border-t-2 border-b-2 border-[#4A5568] shadow-md">
+        <section className="bg-[rgba(31,31,31,0.95)] py-3 my-8 overflow-hidden border-t-2 border-b-2 border-[#4A5568] shadow-md">
           <div className="relative w-full overflow-hidden group">
-            <div className="flex animate-marquee whitespace-nowrap text-lg font-semibold text-[#E2E8F0]">
+            <div className="flex animate-marquee whitespace-nowrap text-sm sm:text-lg md:text-xl font-semibold text-[#E2E8F0]">
               {marqueeLinks.map((link, i) => (
                 <a
                   key={`${link.href}-${i}`}
                   href={link.href}
-                  className="mx-8 hover:text-[#60A5FA] hover:underline transition-colors"
+                  className="mx-6 sm:mx-8 hover:text-[#60A5FA] hover:underline transition-colors"
                 >
                   {link.text}
                 </a>
               ))}
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Jubilee Memories Carousel */}
-        <div className="w-[90%] mx-auto my-14">
-          <h2 className="text-3xl font-bold text-center mb-8 text-[#EE634F]">
+        <section className="w-[95%] sm:w-[90%] mx-auto my-14">
+          <h2 className="text-l sm:text-xl md:text-2xl xl:text-3xl font-bold text-center mb-8 text-[#EE634F]">
             Memories Through the Years
           </h2>
           <Slider {...jubileeSettings}>
             {jubileeImages.map((src, idx) => (
-              <div key={idx} className="px-3">
-                <div className="rounded-2xl overflow-hidden shadow-lg border-2 border-[#C5D7DC] p-0.5 bg-white">
+              <div key={idx} className="px-2 sm:px-3">
+                <div className="rounded-xl sm:rounded-2xl overflow-hidden shadow-lg border-2 border-[#C5D7DC] p-0.5 bg-white">
                   <img
                     src={src}
                     alt={`Memory ${idx + 1}`}
-                    className="w-full h-[250px] object-cover rounded-xl"
+                    className="w-full h-[200px] sm:h-[280px] md:h-[320px] lg:h-[400px] object-cover rounded-xl"
                   />
                 </div>
               </div>
             ))}
           </Slider>
-        </div>
+        </section>
       </div>
 
+      {/* Marquee Animation */}
       <style jsx>{`
         @keyframes marquee {
-          0% {
-            transform: translateX(0);
-          }
-          100% {
-            transform: translateX(-100%);
-          }
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-100%); }
         }
         .animate-marquee {
-          animation: marquee 15s linear infinite;
+          animation: marquee 18s linear infinite;
           display: flex;
         }
         .group:hover .animate-marquee {
           animation-play-state: paused;
         }
+          
       `}</style>
     </>
   );
