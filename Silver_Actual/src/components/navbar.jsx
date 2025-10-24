@@ -40,9 +40,19 @@ function ResponsiveAppBar() {
             {/* Left: Logo Text */}
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <Avatar sx={{ bgcolor: 'grey', width: 40, height: 40, mr: 1 }} />
-              <Typography className="titlename" variant="h6" noWrap sx={{ color: 'white', fontWeight: 'bold' }}>
+              <Typography
+                sx={{
+                  fontFamily: '"Inter", sans-serif',
+                  fontWeight: 600,
+                  fontSize: '1.5rem',
+                  color: '#e0e0e0',
+                  letterSpacing: '0.5px',
+                  textShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                }}
+              >
                 Silver Jubilee
               </Typography>
+
             </Box>
 
             {/* Center Circle Logo (Desktop only) */}

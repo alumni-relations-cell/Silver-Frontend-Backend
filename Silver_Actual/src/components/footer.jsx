@@ -3,7 +3,7 @@ import { FaInstagram, FaLinkedinIn, FaYoutube } from 'react-icons/fa6';
 export default function Footer() {
   return (
     <footer className="bg-black text-white">
-      <div className="max-w-7xl mx-auto px-4 py-8 border-t border-gray-700 mt-8 pt-4">
+      <div className="max-w-7xl mx-auto px-4 py-5 border-t border-gray-700 mt-3 pt-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
           {/* Left Section - Logo and Insights */}
           <div className="mx-auto md:mx-0">
@@ -71,10 +71,7 @@ export default function Footer() {
         {/* Bottom copyright */}
         <div className="border-t border-gray-700 mt-8 pt-4 text-center text-xs text-gray-500">
           ©2025 All Rights Reserved. Alumni Relations Cell @Thapar University | 
-          <a href="#" className="text-gray-400 hover:underline ml-2">Privacy Policy</a> | 
-          <a href="#" className="text-gray-400 hover:underline ml-2">Terms of Use</a> | 
-          <a href="#" className="text-gray-400 hover:underline ml-2">Legal</a> | 
-          <a href="#" className="text-gray-400 hover:underline ml-2">Site Map</a>
+          
         </div>
       </div>
     </footer>
