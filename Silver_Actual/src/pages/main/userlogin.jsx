@@ -1,3 +1,4 @@
+// src/pages/auth/Login.jsx
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import { useNavigate } from "react-router-dom";
 import { apiUser } from "../../lib/apiUser";
@@ -9,8 +10,9 @@ function LoginInner() {
   const handleAuthResponse = async (credential) => {
     try {
       const { data } = await apiUser.post("/api/auth/google", { id_token: credential });
+      // data = { token, user: { name, email, picture, ... } }
       localStorage.setItem("app_auth", JSON.stringify(data));
-      navigate("/register", { replace: true }); // always go register
+      navigate("/register", { replace: true });
     } catch (e) {
       console.error(e);
       alert("Google sign-in failed");
@@ -40,7 +42,6 @@ function LoginInner() {
               <p className="text-sm text-white/70 mt-1">Sign in to continue</p>
             </div>
 
-            {/* removed the custom button — only default widget remains */}
             {!clientId ? (
               <div className="text-red-300 text-sm text-center">
                 Missing VITE_GOOGLE_CLIENT_ID in .env

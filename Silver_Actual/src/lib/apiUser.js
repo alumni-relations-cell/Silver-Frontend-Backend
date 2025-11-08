@@ -1,3 +1,4 @@
+// src/lib/apiUser.js
 import axios from "axios";
 
 export const apiUser = axios.create({
@@ -5,13 +6,12 @@ export const apiUser = axios.create({
 });
 
 apiUser.interceptors.request.use((config) => {
-  const raw = localStorage.getItem("app_auth"); // { token, user }
+  const raw = localStorage.getItem("app_auth");
   const token = raw ? JSON.parse(raw)?.token : null;
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// optional: auto logout on 401
 apiUser.interceptors.response.use(
   (r) => r,
   (err) => {

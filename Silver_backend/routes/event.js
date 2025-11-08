@@ -2,15 +2,16 @@
 
 import { Router } from "express";
 import * as eventController from "../controllers/eventController.js";
+import userAuth from "../middleware/userAuth.js";
 
 const { registerEvent, getAllRegistrations } = eventController;
 
 const router = Router();
 
-// POST /api/event/register
-router.post("/register", registerEvent);
+// Require user auth so we can capture oauthEmail/uid
+router.post("/register", userAuth, registerEvent);
 
-// GET /api/event/registrations (for admin later)
+// Admin (or later) listing
 router.get("/registrations", getAllRegistrations);
 
 export default router;

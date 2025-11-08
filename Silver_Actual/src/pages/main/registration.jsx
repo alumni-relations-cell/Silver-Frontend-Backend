@@ -1,8 +1,8 @@
+// src/pages/main/registration.jsx
 import React, { useEffect, useState } from "react";
-import { apiUser } from "../../lib/apiUser"; // authorized user client
+import { apiUser } from "../../lib/apiUser";
 
 const Registration = () => {
-  // pull Google user (if present) from localStorage
   const authRaw = typeof window !== "undefined" ? localStorage.getItem("app_auth") : null;
   const auth = authRaw ? JSON.parse(authRaw) : null;
   const googleUser = auth?.user || null;
@@ -19,7 +19,6 @@ const Registration = () => {
   const [message, setMessage] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // if user logs in during session and this page stays mounted, keep in sync once on mount
   useEffect(() => {
     if (googleUser) {
       setFormData((prev) => ({
@@ -28,48 +27,37 @@ const Registration = () => {
         email: prev.email || googleUser.email || "",
       }));
     }
-    // run only once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // LOGOUT USER
   const handleLogout = () => {
     localStorage.removeItem("app_auth");
     window.location.href = "/login";
   };
 
-  // ✅ Form validation
   const validateForm = () => {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = "Name is required";
     if (!formData.batch.trim()) newErrors.batch = "Batch is required";
 
     const contactRegex = /^[0-9]{10}$/;
-    if (!formData.contact.trim()) {
-      newErrors.contact = "Contact number is required";
-    } else if (!contactRegex.test(formData.contact)) {
-      newErrors.contact = "Invalid contact number";
-    }
+    if (!formData.contact.trim()) newErrors.contact = "Contact number is required";
+    else if (!contactRegex.test(formData.contact)) newErrors.contact = "Invalid contact number";
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!emailRegex.test(formData.email)) {
-      newErrors.email = "Invalid email address";
-    }
+    if (!formData.email.trim()) newErrors.email = "Email is required";
+    else if (!emailRegex.test(formData.email)) newErrors.email = "Invalid email address";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // ✅ Handle field change
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((s) => ({ ...s, [name]: value }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: undefined }));
   };
 
-  // ✅ Submit form (env-based API)
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -83,7 +71,6 @@ const Registration = () => {
         { ...formData },
         { headers: { "Content-Type": "application/json" } }
       );
-
       if (!res || res.status >= 400) throw new Error("Registration failed");
 
       setMessage({ type: "success", text: "Registration successful!" });
@@ -97,10 +84,7 @@ const Registration = () => {
       setErrors({});
       setTimeout(() => setMessage(null), 5000);
     } catch (error) {
-      const msg =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Registration failed";
+      const msg = error?.response?.data?.message || error?.message || "Registration failed";
       setMessage({ type: "error", text: msg });
     } finally {
       setIsSubmitting(false);
@@ -110,10 +94,8 @@ const Registration = () => {
   return (
     <div className="min-h-screen bg-[#1F1F1F] flex items-center justify-center p-4 pt-24">
       <div className="w-full max-w-2xl bg-[#292929] rounded-2xl shadow-2xl p-8">
-        {/* Header + Logout */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-3xl font-bold text-white">Event Registration</h2>
-
           <button
             onClick={handleLogout}
             className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm"
@@ -122,7 +104,6 @@ const Registration = () => {
           </button>
         </div>
 
-        {/* Signed in as */}
         {googleUser && (
           <div className="flex items-center gap-3 mb-6 rounded-xl border border-white/10 bg-white/5 p-3">
             {googleUser.picture && (
@@ -153,7 +134,6 @@ const Registration = () => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Name */}
           <div>
             <label className="block mb-2 text-gray-300">Name</label>
             <input
@@ -161,7 +141,6 @@ const Registration = () => {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              placeholder={googleUser?.name ? "" : "Enter your full name"}
               className={`w-full p-3 rounded-lg bg-[#333333] text-white focus:outline-none ${
                 errors.name ? "border border-red-500" : "border border-[#444444]"
               }`}
@@ -169,7 +148,6 @@ const Registration = () => {
             {errors.name && <p className="text-red-400 mt-1">{errors.name}</p>}
           </div>
 
-          {/* Batch */}
           <div>
             <label className="block mb-2 text-gray-300">Batch</label>
             <input
@@ -185,7 +163,6 @@ const Registration = () => {
             {errors.batch && <p className="text-red-400 mt-1">{errors.batch}</p>}
           </div>
 
-          {/* Contact & Email */}
           <div className="flex flex-col md:flex-row gap-6">
             <div className="flex-1">
               <label className="block mb-2 text-gray-300">Contact</label>
@@ -199,9 +176,7 @@ const Registration = () => {
                   errors.contact ? "border border-red-500" : "border border-[#444444]"
                 }`}
               />
-              {errors.contact && (
-                <p className="text-red-400 mt-1">{errors.contact}</p>
-              )}
+              {errors.contact && <p className="text-red-400 mt-1">{errors.contact}</p>}
             </div>
 
             <div className="flex-1">
@@ -211,18 +186,15 @@ const Registration = () => {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                placeholder={googleUser?.email ? "" : "you@example.com"}
+                placeholder="you@example.com"
                 className={`w-full p-3 rounded-lg bg-[#333333] text-white focus:outline-none ${
                   errors.email ? "border border-red-500" : "border border-[#444444]"
                 }`}
               />
-              {errors.email && (
-                <p className="text-red-400 mt-1">{errors.email}</p>
-              )}
+              {errors.email && <p className="text-red-400 mt-1">{errors.email}</p>}
             </div>
           </div>
 
-          {/* LinkedIn URL */}
           <div>
             <label className="block mb-2 text-gray-300">LinkedIn URL</label>
             <input
@@ -235,7 +207,6 @@ const Registration = () => {
             />
           </div>
 
-          {/* Submit */}
           <button
             type="submit"
             disabled={isSubmitting}
@@ -250,3 +221,4 @@ const Registration = () => {
 };
 
 export default Registration;
+  

@@ -1,14 +1,24 @@
-// models/Registration.js   (ESM)
+// models/Registration.js (ESM)
 
 import mongoose from "mongoose";
 
 const registrationSchema = new mongoose.Schema(
   {
-    name: {
+    // Google account identifiers (from JWT)
+    oauthEmail: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
+      lowercase: true,
     },
+    oauthUid: {
+      type: String, // Google's "sub" in our JWT as uid
+      required: true,
+      trim: true,
+    },
+
+    // Existing fields (user-typed)
+    name: { type: String, required: true, trim: true },
     batch: {
       type: String,
       required: true,
@@ -18,14 +28,14 @@ const registrationSchema = new mongoose.Schema(
           const year = Number(v);
           return year >= 1956 && year <= 2028;
         },
-        message: props => `${props.value} is not a valid batch year (1956 — 2028)`
-      }
+        message: (props) => `${props.value} is not a valid batch year (1956 — 2028)`,
+      },
     },
     contact: {
       type: String,
       required: true,
       trim: true,
-      match: [/^[0-9]{10}$/, "Please provide a valid 10-digit contact number"]
+      match: [/^[0-9]{10}$/, "Please provide a valid 10-digit contact number"],
     },
     email: {
       type: String,
@@ -33,22 +43,23 @@ const registrationSchema = new mongoose.Schema(
       unique: true,
       trim: true,
       lowercase: true,
-      match: [/^\S+@\S+\.\S+$/, "Please provide a valid email address"]
+      match: [/^\S+@\S+\.\S+$/, "Please provide a valid email address"],
     },
     linkedin: {
       type: String,
       trim: true,
       match: [
         /^https?:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9-]+\/?$/,
-        "Please provide a valid LinkedIn profile URL"
-      ]
-    }
+        "Please provide a valid LinkedIn profile URL",
+      ],
+    },
   },
   { timestamps: true }
 );
 
-// ensure unique email
+// Indexes
 registrationSchema.index({ email: 1 }, { unique: true });
+registrationSchema.index({ oauthUid: 1 }); // helpful for querying per user
 
 const Registration = mongoose.model("Registration", registrationSchema);
 export default Registration;
