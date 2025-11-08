@@ -2,16 +2,16 @@ import { useState } from 'react';
 import { Routes, Route } from 'react-router';
 import './App.css';
 
-// Main Website Pages
-import Home from './components/home';
-import Memories from './components/memories';
-import EventFlow from './components/eventFlow';
-import Registration from './components/registration';
-import Meetourteam from './components/meetourteam';
+
+import Home from './pages/main/home';
+import Memories from './pages/main/memories';
+import EventFlow from './pages/main/eventFlow';
+import Registration from './pages/main/registration';
+import Meetourteam from './pages/main/meetourteam';
 import ResponsiveAppBar from './components/navbar.jsx';
 import Footer from './components/footer.jsx';
 
-// Admin Pages
+
 import Login from './pages/Admin/Login.jsx';
 import Dashboard from './pages/Admin/Dashboard.jsx';
 import HomeManager from './pages/Admin/HomeManager.jsx';

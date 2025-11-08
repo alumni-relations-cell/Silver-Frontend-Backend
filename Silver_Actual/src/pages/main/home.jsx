@@ -5,7 +5,7 @@ import "slick-carousel/slick/slick-theme.css";
 import "./home.css";
 
 // shared axios client (baseURL comes from VITE_API_BASE_URL)
-import { api } from "../lib/api";
+import { api } from "../../lib/api";
 
 function Home() {
   const [posterImages, setPosterImages] = useState([]);

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Masonry from "react-masonry-css";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
-import { api } from "../lib/api"; // baseURL comes from VITE_API_BASE_URL
+import { api } from "../../lib/api"; // baseURL comes from VITE_API_BASE_URL
 
 const PhotoGallery = () => {
   const [photos, setPhotos] = useState([]);

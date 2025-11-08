@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { api } from "../lib/api"; // baseURL comes from VITE_API_BASE_URL
+import { api } from "../../lib/api"; // baseURL comes from VITE_API_BASE_URL
 
 const Registration = () => {
   const [formData, setFormData] = useState({

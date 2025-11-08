@@ -1,6 +1,6 @@
 import { Users, Code, Palette, Camera, FileText } from 'lucide-react';
-import TeamMember from './TeamMember';
-import DepartmentSection from './DepartmentSection';
+import TeamMember from '../../components/TeamMember';
+import DepartmentSection from '../../components/DepartmentSection';
 
 function App() {
   const facultyHeads = [
