@@ -3,18 +3,26 @@ const cloudinary = require("cloudinary").v2;
 const Image = require("../models/Image");
 const streamifier = require("streamifier");
 
-// -------------------------------
-// Cloudinary Configuration
-// -------------------------------
+/* -------------------------------
+ * Cloudinary Configuration
+ * ------------------------------- */
+const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } = process.env;
+
+if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
+  console.warn(
+    "[adminImageController] Missing Cloudinary envs. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET."
+  );
+}
+
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: CLOUDINARY_CLOUD_NAME,
+  api_key: CLOUDINARY_API_KEY,
+  api_secret: CLOUDINARY_API_SECRET,
 });
 
-// -------------------------------
-// Helper: upload buffer to Cloudinary using stream
-// -------------------------------
+/* -------------------------------
+ * Helper: upload buffer to Cloudinary using stream
+ * ------------------------------- */
 function uploadBufferToCloudinary(buffer, folder = "silverjubilee") {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
@@ -28,76 +36,94 @@ function uploadBufferToCloudinary(buffer, folder = "silverjubilee") {
   });
 }
 
-// -------------------------------
-// Upload Image
-// -------------------------------
+/* -------------------------------
+ * Constants
+ * ------------------------------- */
+const VALID_CATEGORIES = ["home_announcement", "home_memories", "memories_page"];
+
+/* -------------------------------
+ * Upload Image
+ * ------------------------------- */
 exports.uploadImage = async (req, res) => {
   try {
-    console.log("uploadImage controller called");
-    console.log("Body:", req.body);
-    console.log("File object present:", !!req.file);
-
     if (!req.file) {
-      return res.status(400).json({ message: "No file uploaded (req.file is empty)" });
+      return res.status(400).json({ message: "No file uploaded" });
     }
 
     const { category } = req.body;
-    const validCategories = ["home_announcement", "home_memories", "memories_page"];
-    if (!category || !validCategories.includes(category)) {
+    if (!category || !VALID_CATEGORIES.includes(category)) {
       return res.status(400).json({
-        message: `Invalid or missing category. Must be one of: ${validCategories.join(", ")}`
+        message: `Invalid or missing category. Must be one of: ${VALID_CATEGORIES.join(", ")}`,
       });
     }
 
-    const result = await uploadBufferToCloudinary(req.file.buffer, `silverjubilee/${category}`);
+    const result = await uploadBufferToCloudinary(
+      req.file.buffer,
+      `silverjubilee/${category}`
+    );
 
-    const newImage = new Image({
+    const newImage = await Image.create({
       url: result.secure_url,
       public_id: result.public_id,
       category,
     });
 
-    await newImage.save();
-
-    return res.status(201).json({ message: "Image uploaded successfully", image: newImage });
+    // Frontend only needs _id, url, category
+    return res.status(201).json({
+      _id: newImage._id,
+      url: newImage.url,
+      category: newImage.category,
+    });
   } catch (err) {
     console.error("uploadImage error:", err);
     return res.status(500).json({ message: "Upload failed", error: err.message });
   }
 };
 
-// -------------------------------
-// Get Images by Category
-// -------------------------------
+/* -------------------------------
+ * Get Images by Category
+ * ------------------------------- */
 exports.getImages = async (req, res) => {
   try {
     const { category } = req.query;
-    const validCategories = ["home_announcement", "home_memories", "memories_page"];
-    
-    const filter = category && validCategories.includes(category) ? { category } : {};
-    const images = await Image.find(filter).sort({ uploadedAt: -1 });
+    const filter =
+      category && VALID_CATEGORIES.includes(category) ? { category } : {};
 
-    res.json(images);
+    // Prefer createdAt (Mongoose timestamps). Fallback to uploadedAt if you had it.
+    const images = await Image.find(filter).sort({
+      createdAt: -1,
+      uploadedAt: -1,
+    });
+
+    // Return full docs (frontend uses _id and url). Keeping other fields is harmless.
+    return res.json(images);
   } catch (err) {
     console.error("getImages error:", err);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
-// -------------------------------
-// Delete Image
-// -------------------------------
+/* -------------------------------
+ * Delete Image
+ * ------------------------------- */
 exports.deleteImage = async (req, res) => {
   try {
     const image = await Image.findById(req.params.id);
     if (!image) return res.status(404).json({ message: "Image not found" });
 
-    await cloudinary.uploader.destroy(image.public_id);
+    // Attempt to remove from Cloudinary, but still continue to delete DB doc.
+    try {
+      await cloudinary.uploader.destroy(image.public_id);
+    } catch (e) {
+      console.warn("Cloudinary destroy warning:", e?.message || e);
+    }
+
     await image.deleteOne();
 
-    res.json({ message: "Image deleted successfully" });
+    // Frontend expects a simple ok response
+    return res.json({ ok: true });
   } catch (err) {
     console.error("deleteImage error:", err);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error" });
   }
 };

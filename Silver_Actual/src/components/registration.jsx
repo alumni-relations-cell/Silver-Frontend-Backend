@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { api } from "../lib/api"; // baseURL comes from VITE_API_BASE_URL
 
 const Registration = () => {
   const [formData, setFormData] = useState({
@@ -40,34 +41,40 @@ const Registration = () => {
   // ✅ Handle field change
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData((s) => ({ ...s, [name]: value }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: undefined }));
   };
 
-  // ✅ Submit form
+  // ✅ Submit form (env-based API)
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
     setIsSubmitting(true);
-    try {
-      const response = await fetch("http://localhost:5000/api/event/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+    setMessage(null);
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Registration failed");
+    try {
+      const res = await api.post(
+        "/api/event/register",
+        { ...formData },
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      if (!res || res.status >= 400) throw new Error("Registration failed");
 
       setMessage({ type: "success", text: "Registration successful!" });
       setFormData({ name: "", batch: "", contact: "", email: "", linkedin: "" });
       setErrors({});
-      setTimeout(() => setMessage(null), 5000); // hide message after 5s
+      setTimeout(() => setMessage(null), 5000);
     } catch (error) {
-      setMessage({ type: "error", text: error.message });
+      const msg =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Registration failed";
+      setMessage({ type: "error", text: msg });
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   return (
@@ -131,7 +138,9 @@ const Registration = () => {
                   errors.contact ? "border border-red-500" : "border border-[#444444]"
                 }`}
               />
-              {errors.contact && <p className="text-red-400 mt-1">{errors.contact}</p>}
+              {errors.contact && (
+                <p className="text-red-400 mt-1">{errors.contact}</p>
+              )}
             </div>
 
             <div className="flex-1">
@@ -145,7 +154,9 @@ const Registration = () => {
                   errors.email ? "border border-red-500" : "border border-[#444444]"
                 }`}
               />
-              {errors.email && <p className="text-red-400 mt-1">{errors.email}</p>}
+              {errors.email && (
+                <p className="text-red-400 mt-1">{errors.email}</p>
+              )}
             </div>
           </div>
 

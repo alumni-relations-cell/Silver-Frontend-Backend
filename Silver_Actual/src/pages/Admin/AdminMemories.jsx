@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { api } from "../../lib/api"; // baseURL comes from VITE_API_BASE_URL
 
-// Reuse the same FileUploadButton component
+// FileUploadButton Component
 const FileUploadButton = ({ file, setFile }) => {
   const [fileName, setFileName] = useState("");
 
@@ -41,7 +42,9 @@ const FileUploadButton = ({ file, setFile }) => {
         </svg>
         Choose File
       </label>
-      {fileName && <span className="text-gray-300 text-sm truncate max-w-xs">{fileName}</span>}
+      {fileName && (
+        <span className="text-gray-300 text-sm truncate max-w-xs">{fileName}</span>
+      )}
     </div>
   );
 };
@@ -50,20 +53,22 @@ const AdminMemories = () => {
   const [images, setImages] = useState([]);
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
+
   const token = localStorage.getItem("adminToken");
+  const authHeaders = token ? { Authorization: `Bearer ${token}` } : undefined;
   const category = "memories_page"; // fixed category
 
   const fetchImages = async () => {
     try {
-      const res = await fetch(
-        `http://localhost:5000/api/admin/images?category=${category}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (!res.ok) throw new Error("Failed to load images");
-      const data = await res.json();
-      setImages(data);
+      const res = await api.get("/api/admin/images", {
+        headers: authHeaders,
+        params: { category },
+      });
+      setImages(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
-      toast.error(err.message);
+      const msg =
+        err?.response?.data?.message || err?.message || "Failed to load images";
+      toast.error(msg);
     }
   };
 
@@ -76,20 +81,20 @@ const AdminMemories = () => {
     formData.append("category", category);
 
     try {
-      const res = await fetch("http://localhost:5000/api/admin/images/upload", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
+      // Do not set Content-Type manually — axios sets the correct boundary.
+      const res = await api.post("/api/admin/images/upload", formData, {
+        headers: authHeaders,
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Upload failed");
+      if (!res || res.status >= 400) throw new Error("Upload failed");
 
       toast.success("✅ Image uploaded!");
       setFile(null);
       fetchImages();
     } catch (err) {
-      toast.error(err.message);
+      const msg =
+        err?.response?.data?.message || err?.message || "Upload failed";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -99,24 +104,25 @@ const AdminMemories = () => {
     if (!window.confirm("Delete this image permanently?")) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/images/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await api.delete(`/api/admin/images/${id}`, {
+        headers: authHeaders,
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Delete failed");
+      if (!res || res.status >= 400) throw new Error("Delete failed");
 
       toast.success("🗑️ Image deleted!");
       fetchImages();
     } catch (err) {
-      toast.error(err.message);
+      const msg =
+        err?.response?.data?.message || err?.message || "Delete failed";
+      toast.error(msg);
     }
   };
 
   useEffect(() => {
     fetchImages();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // same behavior as your original file
 
   return (
     <div>
@@ -127,7 +133,7 @@ const AdminMemories = () => {
 
         <button
           onClick={handleUpload}
-          className="bg-orange-500 hover:bg-orange-600 px-4 py-2 rounded font-semibold"
+          className="bg-orange-500 hover:bg-orange-600 px-4 py-2 rounded font-semibold text-white disabled:opacity-60"
           disabled={loading}
         >
           {loading ? "Uploading..." : "Upload"}
@@ -137,7 +143,7 @@ const AdminMemories = () => {
       <div className="grid grid-cols-4 gap-4">
         {images.map((img) => (
           <div key={img._id} className="bg-gray-700 p-2 rounded relative">
-            <img src={img.url} alt="uploaded" className="rounded w-full" />
+            <img src={img.url} alt="uploaded" className="rounded w-full" loading="lazy" />
             <button
               onClick={() => handleDelete(img._id)}
               className="mt-2 w-full bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"

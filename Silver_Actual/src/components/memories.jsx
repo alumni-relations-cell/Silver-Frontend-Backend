@@ -1,17 +1,18 @@
 import { useState, useEffect, useCallback } from "react";
 import Masonry from "react-masonry-css";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { api } from "../lib/api"; // baseURL comes from VITE_API_BASE_URL
 
 const PhotoGallery = () => {
   const [photos, setPhotos] = useState([]);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isNavigating, setIsNavigating] = useState(false); // Prevent overlap clicks
+  const [isNavigating, setIsNavigating] = useState(false);
   const token = localStorage.getItem("adminToken");
 
   // Shuffle helper
   const shuffleArray = (arr) => {
-    const array = [...arr];
+    const array = Array.isArray(arr) ? [...arr] : [];
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [array[i], array[j]] = [array[j], array[i]];
@@ -19,14 +20,20 @@ const PhotoGallery = () => {
     return array;
   };
 
-  // Fetch photos from backend
+  // Fetch photos from backend (env-based)
   useEffect(() => {
-    fetch("http://localhost:5000/api/admin/images?category=memories_page", {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then((res) => res.json())
-      .then((data) => setPhotos(shuffleArray(data)))
-      .catch((err) => console.error(err));
+    const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+
+    api
+      .get("/api/admin/images", {
+        headers,
+        params: { category: "memories_page" },
+      })
+      .then((res) => {
+        const data = Array.isArray(res.data) ? res.data : [];
+        setPhotos(shuffleArray(data));
+      })
+      .catch((err) => console.error("Error fetching gallery images:", err));
   }, [token]);
 
   const openLightbox = (photo, index) => {
@@ -47,7 +54,7 @@ const PhotoGallery = () => {
       setSelectedPhoto(photos[newIndex]);
       return newIndex;
     });
-    setTimeout(() => setIsNavigating(false), 150); // debounce navigation
+    setTimeout(() => setIsNavigating(false), 150);
   }, [isNavigating, photos]);
 
   const goToNext = useCallback(() => {
@@ -58,7 +65,7 @@ const PhotoGallery = () => {
       setSelectedPhoto(photos[newIndex]);
       return newIndex;
     });
-    setTimeout(() => setIsNavigating(false), 150); // debounce navigation
+    setTimeout(() => setIsNavigating(false), 150);
   }, [isNavigating, photos]);
 
   // Keyboard navigation
@@ -113,7 +120,7 @@ const PhotoGallery = () => {
       >
         {photos.map((photo, index) => (
           <div
-            key={photo._id || index}
+            key={photo._id || `${photo.url}-${index}`}
             className="mb-4 overflow-hidden rounded-lg shadow-lg cursor-pointer transform transition-transform duration-300 hover:scale-105"
             onClick={() => openLightbox(photo, index)}
           >
@@ -121,6 +128,7 @@ const PhotoGallery = () => {
               src={photo.url}
               alt={`gallery-${index}`}
               className="w-full h-auto object-cover rounded-lg"
+              loading="lazy"
             />
           </div>
         ))}

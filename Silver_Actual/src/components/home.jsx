@@ -4,33 +4,48 @@ import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import "./home.css";
 
+// shared axios client (baseURL comes from VITE_API_BASE_URL)
+import { api } from "../lib/api";
+
 function Home() {
   const [posterImages, setPosterImages] = useState([]);
   const [jubileeImages, setJubileeImages] = useState([]);
   const token = localStorage.getItem("adminToken");
 
-  /* -------------------------------------------------
-   *  Fetch images from backend
-   * ------------------------------------------------- */
+  // Fetch images
   useEffect(() => {
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
 
     // Posters
-    fetch("http://localhost:5000/api/admin/images?category=home_announcement", { headers })
-      .then((res) => res.json())
-      .then((data) => setPosterImages([...new Set(data.map((img) => img.url))]))
+    api
+      .get("/api/admin/images", {
+        headers,
+        params: { category: "home_announcement" },
+      })
+      .then((res) => {
+        const urls = Array.isArray(res.data)
+          ? res.data.map((img) => img && img.url).filter(Boolean)
+          : [];
+        setPosterImages(Array.from(new Set(urls)));
+      })
       .catch((err) => console.error("Error fetching poster images:", err));
 
     // Memories
-    fetch("http://localhost:5000/api/admin/images?category=home_memories", { headers })
-      .then((res) => res.json())
-      .then((data) => setJubileeImages([...new Set(data.map((img) => img.url))]))
+    api
+      .get("/api/admin/images", {
+        headers,
+        params: { category: "home_memories" },
+      })
+      .then((res) => {
+        const urls = Array.isArray(res.data)
+          ? res.data.map((img) => img && img.url).filter(Boolean)
+          : [];
+        setJubileeImages(Array.from(new Set(urls)));
+      })
       .catch((err) => console.error("Error fetching memories images:", err));
-  }, []);
+  }, [token]);
 
-  /* -------------------------------------------------
-   *  Falling-stars background
-   * ------------------------------------------------- */
+  // Falling-stars background
   useEffect(() => {
     const background = document.getElementById("background-container");
     if (!background) return;
@@ -51,9 +66,7 @@ function Home() {
     };
   }, []);
 
-  /* -------------------------------------------------
-   *  Custom Arrows
-   * ------------------------------------------------- */
+  // Custom Arrows
   const NextArrow = ({ onClick }) => (
     <div
       className="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 z-20 cursor-pointer bg-[#f4f4f400] hover:bg-[#00000030] p-3 rounded-full shadow-md transition-transform duration-200 hover:scale-110"
@@ -76,9 +89,7 @@ function Home() {
     </div>
   );
 
-  /* -------------------------------------------------
-   *  Slider settings
-   * ------------------------------------------------- */
+  // Slider settings
   const posterSettings = {
     dots: true,
     infinite: true,
@@ -93,10 +104,10 @@ function Home() {
     centerPadding: "0px",
     responsive: [
       {
-        breakpoint: 640, // mobile
+        breakpoint: 640,
         settings: {
-          centerMode: false, // disable center mode on small screens
-          arrows: true,      // ensure arrows visible
+          centerMode: false,
+          arrows: true,
           dots: true,
         },
       },
@@ -118,9 +129,6 @@ function Home() {
     ],
   };
 
-  /* -------------------------------------------------
-   *  Marquee data
-   * ------------------------------------------------- */
   const marqueeLinks = [
     { href: "/register", text: "Register Now" },
     { href: "/schedule", text: "View Event Schedule" },
@@ -129,9 +137,6 @@ function Home() {
     { href: "/meetourteam", text: "Meet ARC Team" },
   ];
 
-  /* -------------------------------------------------
-   *  Component Layout
-   * ------------------------------------------------- */
   return (
     <>
       <div id="background-container"></div>
@@ -219,7 +224,7 @@ function Home() {
       </div>
 
       {/* Marquee Animation */}
-      <style jsx>{`
+      <style>{`
         @keyframes marquee {
           0% { transform: translateX(0); }
           100% { transform: translateX(-100%); }
@@ -231,7 +236,6 @@ function Home() {
         .group:hover .animate-marquee {
           animation-play-state: paused;
         }
-          
       `}</style>
     </>
   );
