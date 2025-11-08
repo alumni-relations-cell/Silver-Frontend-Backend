@@ -6,6 +6,7 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
 const compression = require("compression");
+const rateLimit = require("express-rate-limit"); // <- add
 
 const app = express();
 
@@ -40,11 +41,25 @@ app.use((req, _res, next) => {
 
 /* ---------- Core middleware ---------- */
 if (process.env.TRUST_PROXY === "true") app.set("trust proxy", 1);
-app.use(cors(corsOptions));              // preflight handled automatically
+app.use(cors(corsOptions)); // preflight handled automatically
 app.use(helmet());
 app.use(compression());
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
+
+/* ---------- Rate limiters ---------- */
+// 5 attempts per 5 minutes; successful responses don't count
+const loginLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 5,                  // limit each IP to 5 failed attempts per window
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  skipSuccessfulRequests: true, // only count 4xx/5xx
+  message: { message: "Too many login attempts. Try again in 5 minutes." },
+});
+
+// apply to login route only
+app.use("/api/admin/auth/login", loginLimiter);
 
 /* ---------- Routes ---------- */
 const eventRoutes = require("./routes/event");

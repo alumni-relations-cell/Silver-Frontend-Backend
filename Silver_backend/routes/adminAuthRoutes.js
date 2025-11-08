@@ -1,36 +1,21 @@
+// routes/adminAuthRoutes.js
 const express = require("express");
 const router = express.Router();
-const jwt = require("jsonwebtoken");
-const { registerAdmin } = require("../controllers/adminAuthController");
+const { registerAdmin, loginAdmin } = require("../controllers/adminAuthController");
 
-// keep admin register route (your choice)
-router.post("/register", registerAdmin);
-
-// login route (this MUST return { token } — frontend expects this)
-router.post("/login", async (req, res) => {
-  try {
-    const { username, password } = req.body;
-
-    if (!username || !password) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
-
-    // NOTE:
-    // if your registerAdmin stores a hashed password in DB
-    // the DB lookup + bcrypt.compare should be done here
-    // for now we are only generating token
-
-    const token = jwt.sign(
-      { id: "admin-id", role: "admin", username },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    return res.json({ token }); // <-- required by frontend
-  } catch (err) {
-    console.error("Admin login error:", err);
-    return res.status(500).json({ message: "Server error" });
+// Optional: protect register with a setup key in env
+router.post("/register", (req, res, next) => {
+  const key = req.headers["x-setup-key"] || req.body?.setupKey;
+  if (!process.env.ADMIN_SETUP_KEY) {
+    return res.status(403).json({ message: "Admin registration disabled" });
   }
+  if (key !== process.env.ADMIN_SETUP_KEY) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+  return registerAdmin(req, res, next);
 });
+
+// Strict login (DB + hashed password check)
+router.post("/login", loginAdmin);
 
 module.exports = router;
