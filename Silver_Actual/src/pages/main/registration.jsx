@@ -1,18 +1,36 @@
-import React, { useState } from "react";
-import { apiUser } from "../../lib/apiUser"; // IMPORTANT: user api client
+import React, { useEffect, useState } from "react";
+import { apiUser } from "../../lib/apiUser"; // authorized user client
 
 const Registration = () => {
+  // pull Google user (if present) from localStorage
+  const authRaw = typeof window !== "undefined" ? localStorage.getItem("app_auth") : null;
+  const auth = authRaw ? JSON.parse(authRaw) : null;
+  const googleUser = auth?.user || null;
+
   const [formData, setFormData] = useState({
-    name: "",
+    name: googleUser?.name || "",
     batch: "",
     contact: "",
-    email: "",
+    email: googleUser?.email || "",
     linkedin: "",
   });
 
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // if user logs in during session and this page stays mounted, keep in sync once on mount
+  useEffect(() => {
+    if (googleUser) {
+      setFormData((prev) => ({
+        ...prev,
+        name: prev.name || googleUser.name || "",
+        email: prev.email || googleUser.email || "",
+      }));
+    }
+    // run only once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // LOGOUT USER
   const handleLogout = () => {
@@ -69,7 +87,13 @@ const Registration = () => {
       if (!res || res.status >= 400) throw new Error("Registration failed");
 
       setMessage({ type: "success", text: "Registration successful!" });
-      setFormData({ name: "", batch: "", contact: "", email: "", linkedin: "" });
+      setFormData({
+        name: googleUser?.name || "",
+        batch: "",
+        contact: "",
+        email: googleUser?.email || "",
+        linkedin: "",
+      });
       setErrors({});
       setTimeout(() => setMessage(null), 5000);
     } catch (error) {
@@ -86,9 +110,10 @@ const Registration = () => {
   return (
     <div className="min-h-screen bg-[#1F1F1F] flex items-center justify-center p-4 pt-24">
       <div className="w-full max-w-2xl bg-[#292929] rounded-2xl shadow-2xl p-8">
-        
-        <div className="flex justify-between items-center mb-6">
+        {/* Header + Logout */}
+        <div className="flex items-center justify-between mb-6">
           <h2 className="text-3xl font-bold text-white">Event Registration</h2>
+
           <button
             onClick={handleLogout}
             className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm"
@@ -96,6 +121,26 @@ const Registration = () => {
             Logout
           </button>
         </div>
+
+        {/* Signed in as */}
+        {googleUser && (
+          <div className="flex items-center gap-3 mb-6 rounded-xl border border-white/10 bg-white/5 p-3">
+            {googleUser.picture && (
+              <img
+                src={googleUser.picture}
+                alt={googleUser.name || "User"}
+                className="w-8 h-8 rounded-full"
+                referrerPolicy="no-referrer"
+              />
+            )}
+            <div className="text-sm">
+              <p className="text-white/90">
+                Signed in as <span className="font-semibold">{googleUser.name}</span>
+              </p>
+              <p className="text-white/60">{googleUser.email}</p>
+            </div>
+          </div>
+        )}
 
         {message && (
           <div
@@ -116,6 +161,7 @@ const Registration = () => {
               name="name"
               value={formData.name}
               onChange={handleChange}
+              placeholder={googleUser?.name ? "" : "Enter your full name"}
               className={`w-full p-3 rounded-lg bg-[#333333] text-white focus:outline-none ${
                 errors.name ? "border border-red-500" : "border border-[#444444]"
               }`}
@@ -131,6 +177,7 @@ const Registration = () => {
               name="batch"
               value={formData.batch}
               onChange={handleChange}
+              placeholder="e.g., 2022"
               className={`w-full p-3 rounded-lg bg-[#333333] text-white focus:outline-none ${
                 errors.batch ? "border border-red-500" : "border border-[#444444]"
               }`}
@@ -147,6 +194,7 @@ const Registration = () => {
                 name="contact"
                 value={formData.contact}
                 onChange={handleChange}
+                placeholder="10-digit number"
                 className={`w-full p-3 rounded-lg bg-[#333333] text-white focus:outline-none ${
                   errors.contact ? "border border-red-500" : "border border-[#444444]"
                 }`}
@@ -163,6 +211,7 @@ const Registration = () => {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
+                placeholder={googleUser?.email ? "" : "you@example.com"}
                 className={`w-full p-3 rounded-lg bg-[#333333] text-white focus:outline-none ${
                   errors.email ? "border border-red-500" : "border border-[#444444]"
                 }`}
@@ -181,6 +230,7 @@ const Registration = () => {
               name="linkedin"
               value={formData.linkedin}
               onChange={handleChange}
+              placeholder="https://linkedin.com/in/username"
               className="w-full p-3 rounded-lg bg-[#333333] text-white border border-[#444444] focus:outline-none"
             />
           </div>
