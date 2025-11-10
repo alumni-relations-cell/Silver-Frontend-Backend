@@ -1,16 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 
 const events = [
-  { title: "   Event Flow   ", desc: "  ", date: "      " },
-  { title: "Production", desc: "Started production of key assets.", date: "1. Oct" },
-  { title: "Whitelist Launch", desc: "Whitelist opens for active members.", date: "End of Nov" },
-  { title: "Whitelist Minting", desc: "Early access for whitelisted users.", date: "TBA" },
-  { title: "Public Minting", desc: "Open minting begins.", date: "TBA" },
-  { title: "Reveal Day", desc: "Reveal the minted items!", date: "TBA" },
-  { title: "Community Airdrop", desc: "Airdrop to engaged users.", date: "TBA" },
-  { title: "Governance Voting", desc: "DAO voting begins.", date: "TBA" },
-  { title: "Future Expansion", desc: "Next collection teasers.", date: "TBA" },
-  { title: "Game Trailer", desc: "Game reveal trailer.", date: "TBA" },
+  { title: "Alumni Reunion — Event Flow", desc: "Two-day reunion at TI campus.", date: "Dec 2025" },
+
+  // Day 1 — Saturday (per PDF)
+  { title: "Welcome & Registration", desc: "Check-in at Hostel M Mess and settle into rooms.", date: "Day 1 • 10:00 AM – 2:00 PM" },
+  { title: "Lunch at Hostel M Mess", desc: "Hearty lunch while alumni arrive safely.", date: "Day 1 • 12:30 PM – 2:00 PM" },
+  { title: "Walk to Remember + Inauguration", desc: "Procession from Hostel M to Main Auditorium with Bhangra team; official inauguration.", date: "Day 1 • 3:00 PM (sharp)" },
+
+  // Day 2 — Sunday (per PDF)
+  { title: "Morning Bliss", desc: "Optional: Visit to Gurdwara Dukh Niwaran Sahib / campus walk (Kali Mata Mandir) / yoga session.", date: "Day 2 • 6:30 AM – 8:30 AM" },
+  { title: "Breakfast", desc: "Leisurely breakfast at Hostel M Mess.", date: "Day 2 • 8:00 AM – 9:30 AM" },
+  { title: "Back to the Classroom", desc: "Fun MCQ quiz + interaction with favourite faculty.", date: "Day 2 • 10:00 AM – 11:30 AM" },
+  { title: "Campus Stroll & Activities", desc: "Revisit corners of campus; sports & games; soak in how the campus has grown.", date: "Day 2 • 11:30 AM – 1:00 PM" },
+  { title: "Faculty–Alumni Lunch", desc: "Lunch with faculty at Hostel M.", date: "Day 2 • 1:00 PM – 2:30 PM" },
+  { title: "Farewell & Goodbyes", desc: "Wrap-up and depart with warm memories.", date: "Day 2 • 2:30 PM" },
 ];
 
 const Timeline = () => {
@@ -24,45 +28,78 @@ const Timeline = () => {
 
     let frame;
 
-    const handleScroll = () => {
-      if (frame) cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        const scrollTop = container.scrollTop;
-        const containerHeight = container.clientHeight;
-        const scrollHeight = container.scrollHeight;
-        const centerY = scrollTop + containerHeight / 2;
+    const computeActive = () => {
+      const cRect = container.getBoundingClientRect();
+      const cTop = cRect.top;
+      const cBottom = cRect.bottom;
+      const cHeight = cRect.height;
 
-        let closest = 0;
-        let minDiff = Infinity;
+      // Focus line slightly above middle to reduce double-center conflicts on large screens
+      const focusY = cTop + cHeight * 0.45;
 
-        itemRefs.current.forEach((ref, idx) => {
-          if (!ref) return;
-          const offsetTop = ref.offsetTop;
-          const offsetHeight = ref.offsetHeight;
-          const itemCenter = offsetTop + offsetHeight / 2;
-          const diff = Math.abs(centerY - itemCenter);
+      let bestIdx = 0;
+      let bestScore = -Infinity;
 
-          if (diff < minDiff) {
-            minDiff = diff;
-            closest = idx;
-          }
-        });
+      // Ignore slivers at edges
+      const MIN_VISIBLE_PX = 8;
+      // Very small clamp tolerance so 2nd and 2nd-last can still win near edges
+      const EDGE_EPS = 0.5;
 
-        // ✅ Fix first and last event
-        if (scrollTop === 0) closest = 0;
-        else if (scrollTop + containerHeight >= scrollHeight - 1) closest = events.length - 1;
+      itemRefs.current.forEach((el, idx) => {
+        if (!el) return;
+        const r = el.getBoundingClientRect();
 
-        setActiveIndex(closest);
+        // Visible height within container viewport
+        const visible = Math.max(0, Math.min(r.bottom, cBottom) - Math.max(r.top, cTop));
+        if (visible < MIN_VISIBLE_PX) return;
+
+        const itemCenter = r.top + r.height / 2;
+
+        // Center distance normalized to [0,1]
+        const half = cHeight / 2 || 1;
+        const distNorm = Math.min(1, Math.abs(itemCenter - focusY) / half);
+
+        // Visibility ratio [0,1]
+        const visibleRatio = r.height > 0 ? Math.min(1, visible / r.height) : 0;
+
+        // Blend: prioritize closeness to focus line, then visibility (helps 2nd/2nd-last)
+        const score = (1 - distNorm) * 0.7 + visibleRatio * 0.3;
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestIdx = idx;
+        }
       });
+
+      // Clamp only at true extremes (don’t steal activation from second/second-last)
+      const atTop = container.scrollTop <= EDGE_EPS;
+      const maxScroll = container.scrollHeight - container.clientHeight;
+      const atBottom = container.scrollTop >= maxScroll - EDGE_EPS;
+
+      if (atTop) bestIdx = 0;
+      if (atBottom) bestIdx = events.length - 1;
+
+      setActiveIndex(bestIdx);
     };
 
-    container.addEventListener("scroll", handleScroll);
+    const onScroll = () => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(computeActive);
+    };
 
-    // Initial call
-    handleScroll();
+    container.addEventListener("scroll", onScroll, { passive: true });
+
+    // Start at first item, compute once
+    container.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    computeActive();
+
+    // Recompute on resize (handles very large/small screens)
+    const onResize = () => computeActive();
+    window.addEventListener("resize", onResize, { passive: true });
 
     return () => {
-      container.removeEventListener("scroll", handleScroll);
+      container.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
       if (frame) cancelAnimationFrame(frame);
     };
   }, []);

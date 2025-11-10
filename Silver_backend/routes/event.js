@@ -28,7 +28,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  limits: { fileSize: 5 * 1024 * 1024 }, // Limited to 5mb
   fileFilter: (_req, file, cb) => {
     if (file && !String(file.mimetype || "").startsWith("image/")) {
       return cb(new Error("Only image receipts are allowed"));
@@ -42,7 +42,7 @@ function handleReceiptUpload(req, res, next) {
   upload.single("receipt")(req, res, (err) => {
     if (err) {
       if (err.code === "LIMIT_FILE_SIZE") {
-        return res.status(413).json({ message: "Receipt image too large (max 10 MB)" });
+        return res.status(413).json({ message: "Receipt image too large (max 5 MB)" });
       }
       return res.status(400).json({ message: err.message || "Invalid receipt upload" });
     }

@@ -16,23 +16,23 @@ export default function Footer() {
               />
               <span className="text-sm font-semibold uppercase tracking-wider">Alumni Relations Cell</span>
             </div>
-            <div className="mt-4 flex justify-center md:justify-start">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="p-3 border border-gray-600 bg-gray-900 text-white rounded-l-md focus:outline-none focus:ring-2 focus:ring-gray-500 w-full md:w-64"
-              />
-              <button className="bg-gray-700 text-white p-3 rounded-r-md hover:bg-gray-600 transition duration-200 font-semibold">
-                Subscribe
-              </button>
-            </div>
+              {/* <div className="mt-4 flex justify-center md:justify-start">
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  className="p-3 border border-gray-600 bg-gray-900 text-white rounded-l-md focus:outline-none focus:ring-2 focus:ring-gray-500 w-full md:w-64"
+                />
+                <button className="bg-gray-700 text-white p-3 rounded-r-md hover:bg-gray-600 transition duration-200 font-semibold">
+                  Subscribe
+                </button>
+              </div> */}
           </div>
 
           {/* Middle Section - Connect */}
           <div className="mx-auto flex flex-col items-center justify-center h-full">
             <h3 className="text-2xl font-bold mb-4">Connect | Create | Contribute.</h3>
             <p className="text-sm text-gray-400 leading-relaxed max-w-xs mx-auto md:max-w-none">
-              This is your official hub for all things Thapar alumni. From career highlights and inspiring stories to job opportunities and alumni events, stay updated on the vibrant Thapar community. Let's build a stronger network together!
+           This platform brings the Thapar Class of 2000 together for the Silver Jubilee celebration  a space to reconnect, relive memories, share achievements, and stay updated with all event-related announcements. Let’s celebrate 25 years of friendships, growth, and legacy together.
             </p>
           </div>
 
@@ -45,13 +45,9 @@ export default function Footer() {
               Patiala, Punjab 147004
             </p>
             <p className="text-sm text-gray-400 mt-4 max-w-xs mx-auto md:max-w-none md:text-right">
-              Emails:<br />
-              mansi.bhargava@thapar.edu<br />
+              Emails:
               headalumni@thapar.edu<br />
-              arclet@thapar.edu
-            </p>
-            <p className="text-sm text-gray-400 mt-4 max-w-xs mx-auto md:max-w-none md:text-right">
-              Phone: +91 9918010057
+              arctiet@thapar.edu
             </p>
           </div>
         </div>

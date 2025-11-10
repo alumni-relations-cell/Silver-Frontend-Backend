@@ -1,7 +1,5 @@
-// server.js (ESM, Express v5-safe)
 import dotenv from "dotenv";
 dotenv.config({ path: "./.env" });
-
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
@@ -13,7 +11,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
 
-// routes
+
 import googleAuth from "./routes/googleAuth.js";       // keep your existing file
 import eventRoutes from "./routes/event.js";           // keep your existing file
 import adminAuthRoutes from "./routes/adminAuthRoutes.js";

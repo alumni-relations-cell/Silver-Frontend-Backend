@@ -5,14 +5,14 @@ import DepartmentSection from '../../components/DepartmentSection';
 function App() {
   const facultyHeads = [
     {
-      name: "Mansi Bhargava",
+      name: "Ms.Mansi Bhargava",
       position: "Head Of Alumni Relations",
       photo: "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=400",
       linkedin: "https://linkedin.com/in/mansibhargava",
       github: "https://github.com/mansibhargava",
     },
     {
-      name: "Mrs. Deepika",
+      name: "Ms.Deepika",
       position: "Senior Associate",
       photo: "https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=400",
       linkedin: "https://linkedin.com/in/deepika",
@@ -22,22 +22,29 @@ function App() {
 
   const studentLeads = [
     {
-      name: "Kushal Preet Sallan",
+      name: "Anmol Sethi",
       position: "President",
       photo: "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=400",
       linkedin: "https://linkedin.com/in/kushalpreetsallan",
       github: "https://github.com/kushalpreetsallan",
     },
     {
-      name: "Madhav Mahajan",
-      position: "Tech Head",
+      name: "Kushagrh Rohilla",
+      position: "Executive Head",
       photo: "https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=400",
       linkedin: "https://linkedin.com/in/madhavmahajan",
       github: "https://github.com/madhavmahajan",
     },
     {
-      name: "Jatin Sharma",
-      position: "Cultural Head",
+      name: "Angad Bir Singh",
+      position: "Executive Head",
+      photo: "https://images.pexels.com/photos/1516680/pexels-photo-1516680.jpeg?auto=compress&cs=tinysrgb&w=400",
+      linkedin: "https://linkedin.com/in/jatinsharma",
+      github: "https://github.com/jatinsharma",
+    },
+    {
+      name: "Rakshit Dhamija",
+      position: "Outreach and Communication Head",
       photo: "https://images.pexels.com/photos/1516680/pexels-photo-1516680.jpeg?auto=compress&cs=tinysrgb&w=400",
       linkedin: "https://linkedin.com/in/jatinsharma",
       github: "https://github.com/jatinsharma",
@@ -49,13 +56,6 @@ function App() {
       name: "Tech Department",
       icon: Code,
       members: [
-        {
-          name: "Rakshit Dhamija",
-          position: "Tech POR",
-          photo: "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=400",
-          linkedin: "https://linkedin.com/in/rakshitdhamija",
-          github: "https://github.com/rakshitdhamija",
-        },
         {
           name: "Garv Noor Sandha",
           position: "Tech Lead",
@@ -70,8 +70,8 @@ function App() {
       icon: Palette,
       members: [
         {
-          name: "Riya Mehta",
-          position: "UI/UX Lead",
+          name: "Vani Sinha",
+          position: "Design Lead",
           photo: "https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=400",
           linkedin: "https://linkedin.com/in/riyamehta",
           github: "https://github.com/riyamehta",
