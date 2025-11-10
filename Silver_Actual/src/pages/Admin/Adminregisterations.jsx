@@ -37,7 +37,7 @@ const ReceiptModal = ({ open, onClose, imageUrl }) => {
 export default function AdminRegistrations() {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
-  const [statusFilter, setStatusFilter] = useState("PENDING");
+  const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -175,10 +175,11 @@ export default function AdminRegistrations() {
         <h2 className="text-2xl font-bold text-white">Registrations</h2>
         <div className="flex items-center gap-2">
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="bg-gray-800 text-white px-3 py-2 rounded">
+            <option value="">All</option>
             <option value="PENDING">Pending</option>
             <option value="APPROVED">Approved</option>
             <option value="REJECTED">Rejected</option>
-            <option value="">All</option>
+            
           </select>
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name/email/batch…" className="bg-gray-800 text-white px-3 py-2 rounded w-64" />
           <button onClick={exportCsv} className="bg-gray-800 hover:bg-gray-700 text-white px-3 py-2 rounded">Export CSV</button>

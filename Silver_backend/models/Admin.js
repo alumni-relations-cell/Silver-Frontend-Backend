@@ -1,26 +1,27 @@
-// models/Admin.js   (ESM)
-
+// models/Admin.js
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
-const adminSchema = new mongoose.Schema(
+const AdminSchema = new mongoose.Schema(
   {
+    // single identity field; can be an email or a plain string
     username: { type: String, required: true, unique: true, trim: true },
-    password: { type: String, required: true, minlength: 6 }
+    password: { type: String, required: true },
   },
   { timestamps: true }
 );
 
-adminSchema.pre("save", async function (next) {
+// hash password on save
+AdminSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
+  this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
-adminSchema.methods.matchPassword = function (enteredPassword) {
-  return bcrypt.compare(enteredPassword, this.password);
+// compare
+AdminSchema.methods.matchPassword = function (candidate) {
+  return bcrypt.compare(candidate, this.password);
 };
 
-const Admin = mongoose.model("Admin", adminSchema);
+const Admin = mongoose.models.Admin || mongoose.model("Admin", AdminSchema);
 export default Admin;

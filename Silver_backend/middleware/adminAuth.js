@@ -1,27 +1,22 @@
 // middleware/adminAuth.js
 import jwt from "jsonwebtoken";
 
-/**
- * Protect admin routes.
- * Expects header: Authorization: Bearer <token>
- * or cookie: adminToken (fallback)
- * Verifies with ADMIN_JWT_SECRET and algorithm HS256.
- * Also enforces payload.role === 'admin' (or payload.isAdmin)
- */
+function extractToken(req) {
+  const h = (req.headers.authorization || "").trim();
+  if (h) {
+    const m = h.match(/^Bearer\s+(.+)$/i);
+    if (m && m[1] && m[1] !== "undefined" && m[1] !== "null") return m[1].trim();
+  }
+  const ck = req.cookies?.adminToken;
+  if (ck && ck !== "undefined" && ck !== "null") return ck;
+  return null;
+}
+
 export default function requireAdmin(req, res, next) {
   try {
-    const rawAuth = (req.headers.authorization || "").trim();
-    let token = null;
-
-    // Strict: accept only Bearer token or cookie fallback.
-    const bearerMatch = rawAuth.match(/^Bearer\s+(.+)$/i);
-    if (bearerMatch) {
-      token = bearerMatch[1];
-    } else if (req.cookies && req.cookies.adminToken) {
-      token = req.cookies.adminToken;
-    }
-
+    const token = extractToken(req);
     if (!token) {
+      res.set("WWW-Authenticate", 'Bearer realm="admin", error="invalid_token", error_description="token missing"');
       return res.status(401).json({ message: "Admin token missing" });
     }
 
@@ -33,24 +28,26 @@ export default function requireAdmin(req, res, next) {
 
     let payload;
     try {
-      payload = jwt.verify(token, secret, { algorithms: ["HS256"] });
+      payload = jwt.verify(token, secret, { algorithms: ["HS256"], clockTolerance: 5 });
     } catch (err) {
-      if (err.name === "TokenExpiredError") {
-        return res.status(401).json({ message: "Admin token expired" });
-      }
-      return res.status(401).json({ message: "Invalid admin token" });
+      const expired = err?.name === "TokenExpiredError";
+      res.set(
+        "WWW-Authenticate",
+        `Bearer realm="admin", error="invalid_token", error_description="${expired ? "token expired" : "token invalid"}"`
+      );
+      return res.status(401).json({ message: expired ? "Admin token expired" : "Invalid admin token" });
     }
 
-    // minimal claim check
-    if (!payload || (payload.role !== "admin" && !payload.isAdmin)) {
+    const isAdmin = payload?.role === "admin" || payload?.isAdmin === true;
+    if (!isAdmin || !payload?.id) {
       return res.status(403).json({ message: "Forbidden: insufficient privileges" });
     }
 
-    // Attach admin detail
-    req.admin = { id: payload.id, username: payload.username, role: payload.role || "admin" };
-    next();
+    req.admin = { id: String(payload.id), username: payload.username || "admin", role: payload.role || "admin" };
+    return next();
   } catch (err) {
     console.error("[adminAuth] unexpected error:", err);
+    res.set("WWW-Authenticate", 'Bearer realm="admin", error="invalid_request"');
     return res.status(401).json({ message: "Invalid admin token" });
   }
 }

@@ -4,8 +4,8 @@ import { seedAdmin, login, logout } from "../controllers/adminAuthController.js"
 
 const router = express.Router();
 
-// NOTE: /seed is for development only. Remove or protect in production.
-router.post("/seed", seedAdmin);
+// /api/admin/auth/*
+router.post("/seed", seedAdmin);  // dev-only; guarded in controller
 router.post("/login", login);
 router.post("/logout", logout);
 

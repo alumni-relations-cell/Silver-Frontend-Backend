@@ -141,86 +141,114 @@ function Home() {
       <div id="background-container"></div>
 
       <div className="page-content">
-        {/* Hero Section */}
-        <section className="relative h-[70vh] sm:h-[75vh] md:h-[80vh] flex flex-col justify-center items-center text-white text-center p-4">
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold mb-4 leading-tight">
-            Silver Jubilee Celebration
-          </h1>
-          <p className="text-base sm:text-lg md:text-2xl font-medium text-[#C5CBD3]">
-            25 Years of Legacy | Reunite | Relive | Rejoice
-          </p>
-        </section>
+  {/* Hero Section */}
+  <section className="relative h-[70vh] sm:h-[75vh] md:h-[80vh] flex flex-col justify-center items-center text-white text-center p-4">
+    <h1 className="text-3xl sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold mb-4 leading-tight">
+      Silver Jubilee Celebration
+    </h1>
+    <p className="text-base sm:text-lg md:text-2xl font-medium text-[#C5CBD3]">
+      25 Years of Legacy | Reunite | Relive | Rejoice
+    </p>
 
-        {/* Poster Slideshow */}
-        <section className="relative w-[95%] sm:w-[90%] mx-auto my-8 sm:my-12">
-          <h2 className="text-l sm:text-xl md:text-2xl xl:text-3xl font-bold text-center mb-6 sm:mb-8 text-[#EE634F]">
-            Announcements & Posters
-          </h2>
+    {/* Professional CTA (no imports needed) */}
+    <a
+      href="/register"
+      aria-label="Register now for the Silver Jubilee Celebration"
+      className="
+        group mt-8 inline-flex items-center gap-3
+        px-8 sm:px-12 py-3 sm:py-4
+        rounded-full text-base sm:text-lg font-semibold tracking-wide
+        bg-gradient-to-r from-[#EE634F] to-[#F79B28]
+        text-black
+        shadow-[0_8px_24px_rgba(238,99,79,0.35)]
+        transition-all duration-300
+        hover:shadow-[0_12px_32px_rgba(238,99,79,0.5)]
+        hover:translate-y-[-2px]
+        focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#F79B28] focus-visible:ring-offset-black
+      "
+    >
+      <span>Register Now</span>
+      <svg
+        className="size-5 sm:size-6 transition-transform duration-300 group-hover:translate-x-1"
+        viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+        strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+      >
+        <path d="M5 12h14" />
+        <path d="m12 5 7 7-7 7" />
+      </svg>
+    </a>
+  </section>
 
-          <Slider {...posterSettings}>
-            {posterImages.map((src, idx) => (
-              <div key={idx} className="px-2 sm:px-4">
-                <div className="rounded-xl sm:rounded-2xl overflow-hidden shadow-lg sm:shadow-xl border border-[#352e2e] bg-black">
-                  <img
-                    src={src}
-                    alt={`Poster ${idx + 1}`}
-                    className="
-                      w-full 
-                      h-[200px]
-                      sm:h-[320px] 
-                      md:h-[450px] 
-                      lg:h-[550px] 
-                      xl:h-[650px]
-                      object-cover 
-                      rounded-xl 
-                      transition-transform 
-                      duration-300 
-                      hover:scale-[1.01]
-                    "
-                  />
-                </div>
-              </div>
-            ))}
-          </Slider>
-        </section>
+  {/* Poster Slideshow */}
+  <section className="relative w-[95%] sm:w-[90%] mx-auto my-8 sm:my-12">
+    <h2 className="text-l sm:text-xl md:text-2xl xl:text-3xl font-bold text-center mb-6 sm:mb-8 text-[#EE634F]">
+      Announcements & Posters
+    </h2>
 
-        {/* Marquee */}
-        <section className="bg-[rgba(31,31,31,0.95)] py-3 my-8 overflow-hidden border-t-2 border-b-2 border-[#4A5568] shadow-md">
-          <div className="relative w-full overflow-hidden group">
-            <div className="flex animate-marquee whitespace-nowrap text-sm sm:text-lg md:text-xl font-semibold text-[#E2E8F0]">
-              {marqueeLinks.map((link, i) => (
-                <a
-                  key={`${link.href}-${i}`}
-                  href={link.href}
-                  className="mx-6 sm:mx-8 hover:text-[#60A5FA] hover:underline transition-colors"
-                >
-                  {link.text}
-                </a>
-              ))}
-            </div>
+    <Slider {...posterSettings}>
+      {posterImages.map((src, idx) => (
+        <div key={idx} className="px-2 sm:px-4">
+          <div className="rounded-xl sm:rounded-2xl overflow-hidden shadow-lg sm:shadow-xl border border-[#352e2e] bg-black">
+            <img
+              src={src}
+              alt={`Poster ${idx + 1}`}
+              className="
+                w-full 
+                h-[200px]
+                sm:h-[320px] 
+                md:h-[450px] 
+                lg:h-[550px] 
+                xl:h-[650px]
+                object-cover 
+                rounded-xl 
+                transition-transform 
+                duration-300 
+                hover:scale-[1.01]
+              "
+            />
           </div>
-        </section>
+        </div>
+      ))}
+    </Slider>
+  </section>
 
-        {/* Jubilee Memories Carousel */}
-        <section className="w-[95%] sm:w-[90%] mx-auto my-14">
-          <h2 className="text-l sm:text-xl md:text-2xl xl:text-3xl font-bold text-center mb-8 text-[#EE634F]">
-            Memories Through the Years
-          </h2>
-          <Slider {...jubileeSettings}>
-            {jubileeImages.map((src, idx) => (
-              <div key={idx} className="px-2 sm:px-3">
-                <div className="rounded-xl sm:rounded-2xl overflow-hidden shadow-lg border-2 border-[#C5D7DC] p-0.5 bg-white">
-                  <img
-                    src={src}
-                    alt={`Memory ${idx + 1}`}
-                    className="w-full h-[200px] sm:h-[280px] md:h-[320px] lg:h-[400px] object-cover rounded-xl"
-                  />
-                </div>
-              </div>
-            ))}
-          </Slider>
-        </section>
+  {/* Marquee */}
+  <section className="bg-[rgba(31,31,31,0.95)] py-3 my-8 overflow-hidden border-t-2 border-b-2 border-[#4A5568] shadow-md">
+    <div className="relative w-full overflow-hidden group">
+      <div className="flex animate-marquee whitespace-nowrap text-sm sm:text-lg md:text-xl font-semibold text-[#E2E8F0]">
+        {marqueeLinks.map((link, i) => (
+          <a
+            key={`${link.href}-${i}`}
+            href={link.href}
+            className="mx-6 sm:mx-8 hover:text-[#60A5FA] hover:underline transition-colors"
+          >
+            {link.text}
+          </a>
+        ))}
       </div>
+    </div>
+  </section>
+
+  {/* Jubilee Memories Carousel */}
+  <section className="w-[95%] sm:w-[90%] mx-auto my-14">
+    <h2 className="text-l sm:text-xl md:text-2xl xl:text-3xl font-bold text-center mb-8 text-[#EE634F]">
+      Memories Through the Years
+    </h2>
+    <Slider {...jubileeSettings}>
+      {jubileeImages.map((src, idx) => (
+        <div key={idx} className="px-2 sm:px-3">
+          <div className="rounded-xl sm:rounded-2xl overflow-hidden shadow-lg border-2 border-[#C5D7DC] p-0.5 bg-white">
+            <img
+              src={src}
+              alt={`Memory ${idx + 1}`}
+              className="w-full h-[200px] sm:h-[280px] md:h-[320px] lg:h-[400px] object-cover rounded-xl"
+            />
+          </div>
+        </div>
+      ))}
+    </Slider>
+  </section>
+</div>
 
       {/* Marquee Animation */}
       <style>{`
