@@ -78,7 +78,12 @@ export async function registerEvent(req, res) {
     const comingWithFamily = String(body.comingWithFamily) === "true";
     const amount = computeAmount(comingWithFamily, family);
 
-    const receiptUrl = req.file ? `/uploads/receipts/${req.file.filename}` : undefined;
+    // Store receipt image as binary if provided
+    const receipt = req.file ? {
+      data: req.file.buffer,
+      contentType: req.file.mimetype,
+      originalName: req.file.originalname
+    } : undefined;
 
     const doc = await Registration.create({
       oauthEmail,
@@ -91,7 +96,7 @@ export async function registerEvent(req, res) {
       comingWithFamily,
       familyMembers: family,
       amount,
-      receiptUrl,
+      receipt,
       paymentRef: body.paymentRef ? String(body.paymentRef).trim() : undefined,
       status: "PENDING",
     });
@@ -127,6 +132,24 @@ export async function getAllRegistrations(req, res) {
     return res.json(registrations);
   } catch (error) {
     console.error("Error fetching registrations:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+}
+
+export async function getReceipt(req, res) {
+  try {
+    const { id } = req.params;
+    const registration = await Registration.findById(id);
+    
+    if (!registration || !registration.receipt?.data) {
+      return res.status(404).json({ message: "Receipt not found" });
+    }
+
+    res.set('Content-Type', registration.receipt.contentType);
+    res.set('Content-Disposition', `inline; filename="${registration.receipt.originalName}"`);
+    return res.send(registration.receipt.data);
+  } catch (error) {
+    console.error("Error fetching receipt:", error);
     return res.status(500).json({ message: "Server error" });
   }
 }

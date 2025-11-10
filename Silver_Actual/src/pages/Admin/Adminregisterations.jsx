@@ -13,22 +13,85 @@ const StatusPill = ({ status }) => {
   return <span className={`px-2 py-1 rounded-full text-white text-xs ${map[status] || "bg-gray-600"}`}>{status || "PENDING"}</span>;
 };
 
-const ReceiptModal = ({ open, onClose, imageUrl }) => {
+const ReceiptModal = ({ open, onClose, registrationId }) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [imageUrl, setImageUrl] = useState(null);
+
+  useEffect(() => {
+    if (!open || !registrationId) return;
+    
+    const fetchReceipt = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = localStorage.getItem("adminToken");
+        const response = await fetch(`${API_BASE}/api/admin/event/registrations/${registrationId}/receipt`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (!response.ok) {
+          throw new Error(response.status === 404 ? 'Receipt not found' : 'Failed to load receipt');
+        }
+        
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        setImageUrl(url);
+      } catch (err) {
+        console.error('Error loading receipt:', err);
+        setError(err.message || 'Failed to load receipt');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReceipt();
+
+    // Cleanup function
+    return () => {
+      if (imageUrl) {
+        URL.revokeObjectURL(imageUrl);
+      }
+    };
+  }, [open, registrationId]);
+
   if (!open) return null;
-  const toAbsolute = (u) =>
-    !u ? "" : /^https?:\/\//i.test(u) ? u : `${API_BASE}${u.startsWith("/") ? u : `/${u}`}`;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <div className="bg-gray-900 rounded-lg p-4 max-w-3xl w-full">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-white text-lg font-semibold">Payment Receipt</h3>
-          <button onClick={onClose} className="text-white/80 hover:text-white">✕</button>
+          <button 
+            onClick={() => {
+              onClose();
+              setImageUrl(null);
+              setError(null);
+            }} 
+            className="text-white/80 hover:text-white"
+          >
+            ✕
+          </button>
         </div>
-        {imageUrl ? (
-          <img src={toAbsolute(imageUrl)} alt="Receipt" className="w-full max-h-[75vh] object-contain rounded border border-white/10" />
-        ) : (
-          <p className="text-white/70">No receipt available.</p>
-        )}
+        <div className="relative">
+          {loading ? (
+            <div className="flex items-center justify-center h-[50vh]">
+              <div className="text-white">Loading receipt...</div>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center h-[50vh]">
+              <div className="text-red-400">{error}</div>
+            </div>
+          ) : imageUrl ? (
+            <img 
+              src={imageUrl} 
+              alt="Receipt" 
+              className="w-full max-h-[75vh] object-contain rounded border border-white/10" 
+            />
+          ) : (
+            <p className="text-white/70">No receipt available.</p>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -42,7 +105,7 @@ export default function AdminRegistrations() {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
-  const [receiptUrl, setReceiptUrl] = useState(null);
+  const [selectedRegistrationId, setSelectedRegistrationId] = useState(null);
 
   const getToken = () => localStorage.getItem("adminToken");
 
@@ -105,8 +168,8 @@ export default function AdminRegistrations() {
 
   const totalAmountOnPage = useMemo(() => paged.reduce((sum, r) => sum + (Number(r.amount) || 0), 0), [paged]);
 
-  const openReceipt = (url) => {
-    setReceiptUrl(url || null);
+  const openReceipt = (registrationId) => {
+    setSelectedRegistrationId(registrationId);
     setModalOpen(true);
   };
 
@@ -230,8 +293,8 @@ export default function AdminRegistrations() {
                           Reject
                         </button>
                       )}
-                      {r.receiptUrl && (
-                        <button onClick={() => openReceipt(r.receiptUrl)} className="px-2 py-1 text-xs rounded bg-gray-700 hover:bg-gray-600 text-white">
+                      {r.receipt?.data && (
+                        <button onClick={() => openReceipt(r._id)} className="px-2 py-1 text-xs rounded bg-gray-700 hover:bg-gray-600 text-white">
                           View Receipt
                         </button>
                       )}
@@ -260,7 +323,14 @@ export default function AdminRegistrations() {
         </div>
       </div>
 
-      <ReceiptModal open={modalOpen} onClose={() => setModalOpen(false)} imageUrl={receiptUrl} />
+      <ReceiptModal 
+        open={modalOpen} 
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedRegistrationId(null);
+        }} 
+        registrationId={selectedRegistrationId}
+      />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import "./home.css";
+import { FaClipboardList, FaRegCalendarAlt, FaImage, FaUsers } from "react-icons/fa";
 
 // shared axios client (baseURL comes from VITE_API_BASE_URL)
 import { api } from "../../lib/api";
@@ -12,7 +13,7 @@ function Home() {
   const [jubileeImages, setJubileeImages] = useState([]);
   const token = localStorage.getItem("adminToken");
 
-  // Fetch images
+  /* ---------------- Fetch images ---------------- */
   useEffect(() => {
     const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
 
@@ -45,7 +46,7 @@ function Home() {
       .catch((err) => console.error("Error fetching memories images:", err));
   }, [token]);
 
-  // Falling-stars background
+  /* ------------- Falling-stars background ------------- */
   useEffect(() => {
     const background = document.getElementById("background-container");
     if (!background) return;
@@ -60,17 +61,17 @@ function Home() {
       star.style.animationDelay = `${Math.random() * 5}s`;
       background.appendChild(star);
     }
-
     return () => {
       if (background) background.innerHTML = "";
     };
   }, []);
 
-  // Custom Arrows
+  /* ----------------- Slider settings ----------------- */
   const NextArrow = ({ onClick }) => (
     <div
       className="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 z-20 cursor-pointer bg-[#f4f4f400] hover:bg-[#00000030] p-3 rounded-full shadow-md transition-transform duration-200 hover:scale-110"
       onClick={onClick}
+      aria-label="Next"
     >
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="white" className="w-5 h-5 sm:w-6 sm:h-6">
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -82,6 +83,7 @@ function Home() {
     <div
       className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 z-20 cursor-pointer bg-[#f4f4f400] hover:bg-[#00000030] p-3 rounded-full shadow-md transition-transform duration-200 hover:scale-110"
       onClick={onClick}
+      aria-label="Previous"
     >
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="white" className="w-5 h-5 sm:w-6 sm:h-6">
         <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -89,7 +91,6 @@ function Home() {
     </div>
   );
 
-  // Slider settings
   const posterSettings = {
     dots: true,
     infinite: true,
@@ -129,11 +130,28 @@ function Home() {
     ],
   };
 
-  const marqueeLinks = [
-    { href: "/register", text: "Register Now" },
-    { href: "/eventflow", text: "View Event Schedule" },
-    { href: "/memories", text: "View Gallery" },
-    { href: "/meetourteam", text: "Meet ARC Team" },
+  /* --------------- Quick nav cards data --------------- */
+  const navCards = [
+    {
+      href: "/register",
+      title: "Register Now",
+      desc: "Secure your spot for the Silver Jubilee celebration.",
+    },
+    {
+      href: "/eventflow",
+      title: "Event Schedule",
+      desc: "See the full flow of the day’s programs and timings.",
+    },
+    {
+      href: "/memories",
+      title: "Gallery",
+      desc: "Relive highlights and special moments through photos.",
+    },
+    {
+      href: "/meetourteam",
+      title: "Meet ARC Team",
+      desc: "Get to know the organizers making it all happen.",
+    },
   ];
 
   return (
@@ -141,129 +159,183 @@ function Home() {
       <div id="background-container"></div>
 
       <div className="page-content">
-  {/* Hero Section */}
-  <section className="relative h-[70vh] sm:h-[75vh] md:h-[80vh] flex flex-col justify-center items-center text-white text-center p-4">
-    <h1 className="text-3xl sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold mb-4 leading-tight">
-      Silver Jubilee Celebration
-    </h1>
-    <p className="text-base sm:text-lg md:text-2xl font-medium text-[#C5CBD3]">
-      25 Years of Legacy | Reunite | Relive | Rejoice
-    </p>
+        {/* Hero Section */}
+        <section className="relative h-[70vh] sm:h-[75vh] md:h-[80vh] flex flex-col justify-center items-center text-white text-center p-4">
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold mb-4 leading-tight">
+            Silver Jubilee Celebration
+          </h1>
+          <p className="text-base sm:text-lg md:text-2xl font-medium text-[#C5CBD3]">
+            25 Years of Legacy | Reunite | Relive | Rejoice
+          </p>
 
-    {/* Professional CTA (no imports needed) */}
-    <a
-      href="/register"
-      aria-label="Register now for the Silver Jubilee Celebration"
-      className="
-        group mt-8 inline-flex items-center gap-3
-        px-8 sm:px-12 py-3 sm:py-4
-        rounded-full text-base sm:text-lg font-semibold tracking-wide
-        bg-gradient-to-r from-[#EE634F] to-[#F79B28]
-        text-black
-        shadow-[0_8px_24px_rgba(238,99,79,0.35)]
-        transition-all duration-300
-        hover:shadow-[0_12px_32px_rgba(238,99,79,0.5)]
-        hover:translate-y-[-2px]
-        focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#F79B28] focus-visible:ring-offset-black
-      "
-    >
-      <span>Register Now</span>
-      <svg
-        className="size-5 sm:size-6 transition-transform duration-300 group-hover:translate-x-1"
-        viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-        strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
-      >
-        <path d="M5 12h14" />
-        <path d="m12 5 7 7-7 7" />
-      </svg>
-    </a>
-  </section>
-
-  {/* Poster Slideshow */}
-  <section className="relative w-[95%] sm:w-[90%] mx-auto my-8 sm:my-12">
-    <h2 className="text-l sm:text-xl md:text-2xl xl:text-3xl font-bold text-center mb-6 sm:mb-8 text-[#EE634F]">
-      Announcements & Posters
-    </h2>
-
-    <Slider {...posterSettings}>
-      {posterImages.map((src, idx) => (
-        <div key={idx} className="px-2 sm:px-4">
-          <div className="rounded-xl sm:rounded-2xl overflow-hidden shadow-lg sm:shadow-xl border border-[#352e2e] bg-black">
-            <img
-              src={src}
-              alt={`Poster ${idx + 1}`}
-              className="
-                w-full 
-                h-[200px]
-                sm:h-[320px] 
-                md:h-[450px] 
-                lg:h-[550px] 
-                xl:h-[650px]
-                object-cover 
-                rounded-xl 
-                transition-transform 
-                duration-300 
-                hover:scale-[1.01]
-              "
-            />
-          </div>
-        </div>
-      ))}
-    </Slider>
-  </section>
-
-  {/* Marquee */}
-  <section className="bg-[rgba(31,31,31,0.95)] py-3 my-8 overflow-hidden border-t-2 border-b-2 border-[#4A5568] shadow-md">
-    <div className="relative w-full overflow-hidden group">
-      <div className="flex animate-marquee whitespace-nowrap text-sm sm:text-lg md:text-xl font-semibold text-[#E2E8F0]">
-        {marqueeLinks.map((link, i) => (
+          {/* CTA */}
           <a
-            key={`${link.href}-${i}`}
-            href={link.href}
-            className="mx-6 sm:mx-8 hover:text-[#60A5FA] hover:underline transition-colors"
+            href="/register"
+            aria-label="Register now for the Silver Jubilee Celebration"
+            className="
+              group mt-8 inline-flex items-center gap-3
+              px-8 sm:px-12 py-3 sm:py-4
+              rounded-full text-base sm:text-lg font-semibold tracking-wide
+              bg-gradient-to-r from-[#EE634F] to-[#F79B28]
+              text-black
+              shadow-[0_8px_24px_rgba(238,99,79,0.35)]
+              transition-all duration-300
+              hover:shadow-[0_12px_32px_rgba(238,99,79,0.5)]
+              hover:translate-y-[-2px]
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#F79B28] focus-visible:ring-offset-black
+            "
           >
-            {link.text}
+            <span>Register Now</span>
+            <svg
+              className="size-5 sm:size-6 transition-transform duration-300 group-hover:translate-x-1"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+              strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+            >
+              <path d="M5 12h14" />
+              <path d="m12 5 7 7-7 7" />
+            </svg>
           </a>
-        ))}
-      </div>
-    </div>
-  </section>
+        </section>
 
-  {/* Jubilee Memories Carousel */}
-  <section className="w-[95%] sm:w-[90%] mx-auto my-14">
-    <h2 className="text-l sm:text-xl md:text-2xl xl:text-3xl font-bold text-center mb-8 text-[#EE634F]">
-      Memories Through the Years
-    </h2>
-    <Slider {...jubileeSettings}>
-      {jubileeImages.map((src, idx) => (
-        <div key={idx} className="px-2 sm:px-3">
-          <div className="rounded-xl sm:rounded-2xl overflow-hidden shadow-lg border-2 border-[#C5D7DC] p-0.5 bg-white">
-            <img
-              src={src}
-              alt={`Memory ${idx + 1}`}
-              className="w-full h-[200px] sm:h-[280px] md:h-[320px] lg:h-[400px] object-cover rounded-xl"
-            />
-          </div>
+        {/* Posters */}
+        <section className="relative w-[95%] sm:w-[90%] mx-auto my-8 sm:my-12">
+          <h2 className="text-l sm:text-xl md:text-2xl xl:text-3xl font-bold text-center mb-6 sm:mb-8 text-[#EE634F]">
+            Announcements & Posters
+          </h2>
+
+          <Slider {...posterSettings}>
+            {posterImages.map((src, idx) => (
+              <div key={idx} className="px-2 sm:px-4">
+                <div className="rounded-xl sm:rounded-2xl overflow-hidden shadow-lg sm:shadow-xl border border-[#352e2e] bg-black">
+                  <img
+                    src={src}
+                    alt={`Poster ${idx + 1}`}
+                    className="
+                      w-full 
+                      h-[200px]
+                      sm:h-[320px] 
+                      md:h-[450px] 
+                      lg:h-[550px] 
+                      xl:h-[650px]
+                      object-cover 
+                      rounded-xl 
+                      transition-transform 
+                      duration-300 
+                      hover:scale-[1.01]
+                    "
+                  />
+                </div>
+              </div>
+            ))}
+          </Slider>
+        </section>
+
+        {/* Quick Navigation Cards (replaces marquee) */}
+        {/* Quick Navigation – dark, on-brand cards */}
+      {/* Quick Navigation – dark, accent top border, animated hover */}
+<section className="py-10 my-12 bg-[rgba(31,31,31,0.4)] shadow-md">
+  <div className="w-[95%] sm:w-[90%] mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    {[
+      { href: "/register", text: "Register Now", desc: "Secure your spot for the celebration.", icon: <FaClipboardList /> },
+      { href: "/eventflow", text: "Event Schedule", desc: "See the full day’s program flow.", icon: <FaRegCalendarAlt /> },
+      { href: "/memories", text: "Gallery", desc: "Relive the memories & highlights.", icon: <FaImage /> },
+      { href: "/meetourteam", text: "Meet ARC Team", desc: "Know the people behind the event.", icon: <FaUsers /> },
+    ].map((item, i) => (
+      <a
+        key={i}
+        href={item.href}
+        className="
+          group relative overflow-hidden rounded-2xl p-6
+          bg-[linear-gradient(180deg,#242424_0%,#1b1b1b_100%)]
+          shadow-[0_10px_28px_rgba(0,0,0,0.45)]
+          transition-all duration-300
+          hover:-translate-y-[6px] hover:shadow-[0_18px_40px_rgba(238,99,79,0.25)]
+          focus:outline-none focus-visible:ring-2 focus-visible:ring-[#EE634F]/60
+        "
+        aria-label={item.text}
+      >
+        {/* top accent border (as earlier) */}
+        <div
+          className="
+            absolute inset-x-0 top-0 h-1
+            bg-gradient-to-r from-[#EE634F] via-[#F79B28] to-[#EE634F]
+            opacity-80
+          "
+        />
+        {/* animated top glow on hover */}
+        <div
+          className="
+            pointer-events-none absolute -top-10 right-[-40px] h-28 w-28
+            rotate-12 rounded-full blur-2xl opacity-0
+            bg-[conic-gradient(from_120deg,rgba(238,99,79,0.18),rgba(247,155,40,0.12),transparent)]
+            transition-opacity duration-300
+            group-hover:opacity-100
+          "
+        />
+
+        {/* icon */}
+        <div className="mb-4 text-3xl text-[#E2E8F0] transition-all duration-300 group-hover:text-[#EE634F] group-hover:scale-105">
+          {item.icon}
         </div>
-      ))}
-    </Slider>
-  </section>
-</div>
 
-      {/* Marquee Animation */}
-      <style>{`
-        @keyframes marquee {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-100%); }
-        }
-        .animate-marquee {
-          animation: marquee 18s linear infinite;
-          display: flex;
-        }
-        .group:hover .animate-marquee {
-          animation-play-state: paused;
-        }
-      `}</style>
+        {/* title + desc */}
+        <h3 className="text-[#E2E8F0] text-lg sm:text-xl font-semibold tracking-tight mb-1">
+          {item.text}
+        </h3>
+        <p className="text-[#C5CBD3]/90 text-sm leading-relaxed mb-5">
+          {item.desc}
+        </p>
+
+        {/* CTA row */}
+        <span className="inline-flex items-center gap-2 text-[#EE634F] font-semibold">
+          Open
+          <svg
+            width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            className="transition-transform duration-300 group-hover:translate-x-1"
+          >
+            <path d="M5 12h14" />
+            <path d="m12 5 7 7-7 7" />
+          </svg>
+        </span>
+
+        {/* subtle inner highlight on hover */}
+        <div
+          className="
+            pointer-events-none absolute inset-0 rounded-2xl
+            ring-0 ring-[#EE634F]/0 group-hover:ring-1 group-hover:ring-[#EE634F]/25
+            transition-all duration-300
+          "
+        />
+      </a>
+    ))}
+  </div>
+</section>
+
+
+
+        {/* Memories */}
+        <section className="w-[95%] sm:w-[90%] mx-auto my-14">
+          <h2 className="text-l sm:text-xl md:text-2xl xl:text-3xl font-bold text-center mb-8 text-[#EE634F]">
+            Memories Through the Years
+          </h2>
+          <Slider {...jubileeSettings}>
+            {jubileeImages.map((src, idx) => (
+              <div key={idx} className="px-2 sm:px-3">
+                <div className="rounded-xl sm:rounded-2xl overflow-hidden shadow-lg border-2 border-[#C5D7DC] p-0.5 bg-white">
+                  <img
+                    src={src}
+                    alt={`Memory ${idx + 1}`}
+                    className="w-full h-[200px] sm:h-[280px] md:h-[320px] lg:h-[400px] object-cover rounded-xl"
+                  />
+                </div>
+              </div>
+            ))}
+          </Slider>
+        </section>
+      </div>
+
+      {/* removed old marquee styles */}
     </>
   );
 }

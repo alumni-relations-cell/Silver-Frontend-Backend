@@ -11,20 +11,8 @@ const __dirname = path.dirname(__filename);
 
 const router = Router();
 
-/* ---------- Ensure uploads folder exists ---------- */
-const uploadsDir = path.join(__dirname, "..", "uploads", "receipts");
-fs.mkdirSync(uploadsDir, { recursive: true });
-
-/* ---------- Multer storage ---------- */
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, uploadsDir),
-  filename: (_req, file, cb) => {
-    const safe = String(file.originalname || "receipt")
-      .replace(/[^\w.\-]+/g, "_")
-      .slice(0, 120);
-    cb(null, `${Date.now()}-${safe}`);
-  },
-});
+/* ---------- Multer memory storage ---------- */
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage,

@@ -79,7 +79,11 @@ const registrationSchema = new Schema(
     amount: { type: Number, required: true, min: 0 }, // ₹10000 alone + ₹5000 per family member
 
     // Payment proof
-    receiptUrl: { type: String, trim: true }, // URL to uploaded receipt image
+    receipt: {
+      data: Buffer,
+      contentType: String,
+      originalName: String
+    },
     paymentRef: { type: String, trim: true }, // optional: UTR/transaction id
 
     // Approval / moderation

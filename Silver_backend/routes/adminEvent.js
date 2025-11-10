@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import {
   getAllRegistrations,
   updateRegistrationStatus,
+  getReceipt,
 } from "../controllers/eventController.js";
 
 const router = Router();
@@ -45,5 +46,6 @@ router.get("/registrations", requireAdmin, getAllRegistrations);
  * Body: { status: "APPROVED" | "REJECTED" | "PENDING" }
  */
 router.put("/registrations/:id/status", requireAdmin, updateRegistrationStatus);
+router.get("/registrations/:id/receipt", requireAdmin, getReceipt);
 
 export default router;
