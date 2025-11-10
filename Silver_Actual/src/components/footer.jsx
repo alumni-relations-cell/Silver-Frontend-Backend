@@ -54,16 +54,16 @@ export default function Footer() {
 
         {/* Social Media Logos at Bottom */}
         <div className="flex justify-center space-x-6 mt-8">
-          <a href="https://www.instagram.com/arc_tiet/" aria-label="Instagram" className="hover:text-gray-400">
+          <a href="https://www.instagram.com/arc_tiet/" aria-label="Instagram" className="hover:text-gray-400" target='blank'>
             <FaInstagram size={24} />
           </a>
-          <a href="https://www.linkedin.com/company/thapar-alumni-relations/" aria-label="LinkedIn" className="hover:text-gray-400">
+          <a href="https://www.linkedin.com/company/thapar-alumni-relations/" aria-label="LinkedIn" className="hover:text-gray-400" target='blank'>
             <FaLinkedinIn size={24} />
           </a>
-          <a href="https://www.youtube.com/@AlumniRelationsCellTIET" aria-label="YouTube" className="hover:text-gray-400">
+          <a href="https://www.youtube.com/@AlumniRelationsCellTIET" aria-label="YouTube" className="hover:text-gray-400"  target='blank'>
             <FaYoutube size={24} />
           </a>
-          <a href="https://open.spotify.com/show/0Bu6ILKEXigkmP0fw82wm8?si=rs936j77SN6wGVSRDwNXZw" aria-label="YouTube" className="hover:text-gray-400">
+          <a href="https://open.spotify.com/show/0Bu6ILKEXigkmP0fw82wm8?si=rs936j77SN6wGVSRDwNXZw" aria-label="YouTube" className="hover:text-gray-400" target='blank'>
             <FaSpotify size={24} />
           </a>
         </div>

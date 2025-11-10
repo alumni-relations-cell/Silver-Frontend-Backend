@@ -1,46 +1,58 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import "./home.css";
 import { FaClipboardList, FaRegCalendarAlt, FaImage, FaUsers } from "react-icons/fa";
-
-// shared axios client (baseURL comes from VITE_API_BASE_URL)
 import { api } from "../../lib/api";
+
+/* ---------------- Cloudinary helpers ---------------- */
+function isCloudinary(url) {
+  return typeof url === "string" && /res\.cloudinary\.com\/[^/]+\/image\/upload\//.test(url);
+}
+
+/**
+ * Injects Cloudinary transformations after `/image/upload/`
+ * Example addTransform(".../upload/v123/abc.jpg", "f_auto,q_auto,dpr_auto,w_1200") =>
+ * ".../upload/f_auto,q_auto,dpr_auto,w_1200/v123/abc.jpg"
+ */
+function addTransform(url, transform) {
+  if (!isCloudinary(url)) return url;
+  return url.replace(/\/image\/upload\/(?!.*\/image\/upload\/)/, `/image/upload/${transform}/`);
+}
+
+/** Builds src + srcSet for responsive images */
+function buildCloudinarySources(url, widths, { crop = "c_fill", gravity = "g_auto", quality = "q_auto", fmt = "f_auto", dpr = "dpr_auto" } = {}) {
+  if (!isCloudinary(url)) {
+    return { src: url, srcSet: undefined };
+  }
+  const baseTransform = [fmt, quality, dpr, gravity, crop].filter(Boolean).join(",");
+  const srcSet = widths.map((w) => `${addTransform(url, `${baseTransform},w_${w}`)} ${w}w`).join(", ");
+  const src = addTransform(url, `${baseTransform},w_${Math.max(...widths)}`);
+  return { src, srcSet };
+}
 
 function Home() {
   const [posterImages, setPosterImages] = useState([]);
   const [jubileeImages, setJubileeImages] = useState([]);
-  const token = localStorage.getItem("adminToken");
+  const token = (typeof window !== "undefined" && localStorage.getItem("adminToken")) || null;
 
   /* ---------------- Fetch images ---------------- */
   useEffect(() => {
     const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
 
-    // Posters
     api
-      .get("/api/admin/images", {
-        headers,
-        params: { category: "home_announcement" },
-      })
+      .get("/api/admin/images", { headers, params: { category: "home_announcement" } })
       .then((res) => {
-        const urls = Array.isArray(res.data)
-          ? res.data.map((img) => img && img.url).filter(Boolean)
-          : [];
+        const urls = Array.isArray(res.data) ? res.data.map((img) => img && img.url).filter(Boolean) : [];
         setPosterImages(Array.from(new Set(urls)));
       })
       .catch((err) => console.error("Error fetching poster images:", err));
 
-    // Memories
     api
-      .get("/api/admin/images", {
-        headers,
-        params: { category: "home_memories" },
-      })
+      .get("/api/admin/images", { headers, params: { category: "home_memories" } })
       .then((res) => {
-        const urls = Array.isArray(res.data)
-          ? res.data.map((img) => img && img.url).filter(Boolean)
-          : [];
+        const urls = Array.isArray(res.data) ? res.data.map((img) => img && img.url).filter(Boolean) : [];
         setJubileeImages(Array.from(new Set(urls)));
       })
       .catch((err) => console.error("Error fetching memories images:", err));
@@ -50,7 +62,6 @@ function Home() {
   useEffect(() => {
     const background = document.getElementById("background-container");
     if (!background) return;
-
     background.innerHTML = "";
     const starCount = 150;
     for (let i = 0; i < starCount; i++) {
@@ -91,44 +102,53 @@ function Home() {
     </div>
   );
 
-  const posterSettings = {
-    dots: true,
-    infinite: true,
-    speed: 600,
-    autoplay: true,
-    autoplaySpeed: 4000,
-    slidesToShow: 1,
-    slidesToScroll: 1,
-    nextArrow: <NextArrow />,
-    prevArrow: <PrevArrow />,
-    centerMode: true,
-    centerPadding: "0px",
-    responsive: [
-      {
-        breakpoint: 640,
-        settings: {
-          centerMode: false,
-          arrows: true,
-          dots: true,
+  const posterSettings = useMemo(
+    () => ({
+      dots: true,
+      infinite: true,
+      speed: 600,
+      autoplay: true,
+      autoplaySpeed: 4000,
+      slidesToShow: 1,
+      slidesToScroll: 1,
+      nextArrow: <NextArrow />,
+      prevArrow: <PrevArrow />,
+      centerMode: true,
+      centerPadding: "0px",
+      lazyLoad: "ondemand", // react-slick lazy load
+      responsive: [
+        {
+          breakpoint: 640,
+          settings: {
+            centerMode: false,
+            arrows: true,
+            dots: true,
+            lazyLoad: "ondemand",
+          },
         },
-      },
-    ],
-  };
+      ],
+    }),
+    []
+  );
 
-  const jubileeSettings = {
-    dots: false,
-    infinite: true,
-    speed: 500,
-    autoplay: true,
-    autoplaySpeed: 2500,
-    slidesToShow: 3,
-    slidesToScroll: 1,
-    arrows: false,
-    responsive: [
-      { breakpoint: 1024, settings: { slidesToShow: 2 } },
-      { breakpoint: 768, settings: { slidesToShow: 1 } },
-    ],
-  };
+  const jubileeSettings = useMemo(
+    () => ({
+      dots: false,
+      infinite: true,
+      speed: 500,
+      autoplay: true,
+      autoplaySpeed: 2500,
+      slidesToShow: 3,
+      slidesToScroll: 1,
+      arrows: false,
+      lazyLoad: "ondemand", // react-slick lazy load
+      responsive: [
+        { breakpoint: 1024, settings: { slidesToShow: 2, lazyLoad: "ondemand" } },
+        { breakpoint: 768, settings: { slidesToShow: 1, lazyLoad: "ondemand" } },
+      ],
+    }),
+    []
+  );
 
   /* --------------- Quick nav cards data --------------- */
   const navCards = [
@@ -153,6 +173,17 @@ function Home() {
       desc: "Get to know the organizers making it all happen.",
     },
   ];
+
+  /* ---------- Responsive image intent (sizes + widths) ---------- */
+  // Posters: large hero-style slides; we target up to ~1600px effective width
+  const posterWidths = [480, 768, 1024, 1280, 1600, 1920];
+  const posterSizes =
+    "(max-width: 640px) 95vw, (max-width: 1024px) 90vw, (max-width: 1536px) 75vw, 70vw";
+
+  // Memories: smaller cards inside carousel
+  const memWidths = [360, 540, 720, 960, 1200];
+  const memSizes =
+    "(max-width: 768px) 90vw, (max-width: 1024px) 42vw, 28vw";
 
   return (
     <>
@@ -204,115 +235,86 @@ function Home() {
           </h2>
 
           <Slider {...posterSettings}>
-            {posterImages.map((src, idx) => (
-              <div key={idx} className="px-2 sm:px-4">
-                <div className="rounded-xl sm:rounded-2xl overflow-hidden shadow-lg sm:shadow-xl border border-[#352e2e] bg-black">
-                  <img
-                    src={src}
-                    alt={`Poster ${idx + 1}`}
-                    className="
-                      w-full 
-                      h-[200px]
-                      sm:h-[320px] 
-                      md:h-[450px] 
-                      lg:h-[550px] 
-                      xl:h-[650px]
-                      object-cover 
-                      rounded-xl 
-                      transition-transform 
-                      duration-300 
-                      hover:scale-[1.01]
-                    "
-                  />
+            {posterImages.map((url, idx) => {
+              const { src, srcSet } = buildCloudinarySources(url, posterWidths, {
+                crop: "c_fill",
+                gravity: "g_auto",
+                quality: "q_auto",
+                fmt: "f_auto",
+                dpr: "dpr_auto",
+              });
+              return (
+                <div key={idx} className="px-2 sm:px-4">
+                  <div className="rounded-xl sm:rounded-2xl overflow-hidden shadow-lg sm:shadow-xl border border-[#352e2e] bg-black">
+                    <img
+                      src={src}
+                      srcSet={srcSet}
+                      sizes={posterSizes}
+                      alt={`Poster ${idx + 1}`}
+                      loading="lazy"
+                      decoding="async"
+                      className="
+                        w-full 
+                        h-[200px]
+                        sm:h-[320px] 
+                        md:h-[450px] 
+                        lg:h-[550px] 
+                        xl:h-[650px]
+                        object-cover 
+                        rounded-xl 
+                        transition-transform 
+                        duration-300 
+                        hover:scale-[1.01]
+                      "
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </Slider>
         </section>
 
-        {/* Quick Navigation Cards (replaces marquee) */}
-        {/* Quick Navigation – dark, on-brand cards */}
-      {/* Quick Navigation – dark, accent top border, animated hover */}
-<section className="py-10 my-12 bg-[rgba(31,31,31,0.4)] shadow-md">
-  <div className="w-[95%] sm:w-[90%] mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-    {[
-      { href: "/register", text: "Register Now", desc: "Secure your spot for the celebration.", icon: <FaClipboardList /> },
-      { href: "/eventflow", text: "Event Schedule", desc: "See the full day’s program flow.", icon: <FaRegCalendarAlt /> },
-      { href: "/memories", text: "Gallery", desc: "Relive the memories & highlights.", icon: <FaImage /> },
-      { href: "/meetourteam", text: "Meet ARC Team", desc: "Know the people behind the event.", icon: <FaUsers /> },
-    ].map((item, i) => (
-      <a
-        key={i}
-        href={item.href}
-        className="
-          group relative overflow-hidden rounded-2xl p-6
-          bg-[linear-gradient(180deg,#242424_0%,#1b1b1b_100%)]
-          shadow-[0_10px_28px_rgba(0,0,0,0.45)]
-          transition-all duration-300
-          hover:-translate-y-[6px] hover:shadow-[0_18px_40px_rgba(238,99,79,0.25)]
-          focus:outline-none focus-visible:ring-2 focus-visible:ring-[#EE634F]/60
-        "
-        aria-label={item.text}
-      >
-        {/* top accent border (as earlier) */}
-        <div
-          className="
-            absolute inset-x-0 top-0 h-1
-            bg-gradient-to-r from-[#EE634F] via-[#F79B28] to-[#EE634F]
-            opacity-80
-          "
-        />
-        {/* animated top glow on hover */}
-        <div
-          className="
-            pointer-events-none absolute -top-10 right-[-40px] h-28 w-28
-            rotate-12 rounded-full blur-2xl opacity-0
-            bg-[conic-gradient(from_120deg,rgba(238,99,79,0.18),rgba(247,155,40,0.12),transparent)]
-            transition-opacity duration-300
-            group-hover:opacity-100
-          "
-        />
-
-        {/* icon */}
-        <div className="mb-4 text-3xl text-[#E2E8F0] transition-all duration-300 group-hover:text-[#EE634F] group-hover:scale-105">
-          {item.icon}
-        </div>
-
-        {/* title + desc */}
-        <h3 className="text-[#E2E8F0] text-lg sm:text-xl font-semibold tracking-tight mb-1">
-          {item.text}
-        </h3>
-        <p className="text-[#C5CBD3]/90 text-sm leading-relaxed mb-5">
-          {item.desc}
-        </p>
-
-        {/* CTA row */}
-        <span className="inline-flex items-center gap-2 text-[#EE634F] font-semibold">
-          Open
-          <svg
-            width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-            className="transition-transform duration-300 group-hover:translate-x-1"
-          >
-            <path d="M5 12h14" />
-            <path d="m12 5 7 7-7 7" />
-          </svg>
-        </span>
-
-        {/* subtle inner highlight on hover */}
-        <div
-          className="
-            pointer-events-none absolute inset-0 rounded-2xl
-            ring-0 ring-[#EE634F]/0 group-hover:ring-1 group-hover:ring-[#EE634F]/25
-            transition-all duration-300
-          "
-        />
-      </a>
-    ))}
-  </div>
-</section>
-
-
+        {/* Quick Navigation – dark, accent top border, animated hover */}
+        <section className="py-10 my-12 bg-[rgba(31,31,31,0.4)] shadow-md">
+          <div className="w-[95%] sm:w-[90%] mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { href: "/register", text: "Register Now", desc: "Secure your spot for the celebration.", icon: <FaClipboardList /> },
+              { href: "/eventflow", text: "Event Schedule", desc: "See the full day’s program flow.", icon: <FaRegCalendarAlt /> },
+              { href: "/memories", text: "Gallery", desc: "Relive the memories & highlights.", icon: <FaImage /> },
+              { href: "/meetourteam", text: "Meet ARC Team", desc: "Know the people behind the event.", icon: <FaUsers /> },
+            ].map((item, i) => (
+              <a
+                key={i}
+                href={item.href}
+                className="
+                  group relative overflow-hidden rounded-2xl p-6
+                  bg-[linear-gradient(180deg,#242424_0%,#1b1b1b_100%)]
+                  shadow-[0_10px_28px_rgba(0,0,0,0.45)]
+                  transition-all duration-300
+                  hover:-translate-y-[6px] hover:shadow-[0_18px_40px_rgba(238,99,79,0.25)]
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-[#EE634F]/60
+                "
+                aria-label={item.text}
+              >
+                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#EE634F] via-[#F79B28] to-[#EE634F] opacity-80" />
+                <div className="pointer-events-none absolute -top-10 right-[-40px] h-28 w-28 rotate-12 rounded-full blur-2xl opacity-0 bg-[conic-gradient(from_120deg,rgba(238,99,79,0.18),rgba(247,155,40,0.12),transparent)] transition-opacity duration-300 group-hover:opacity-100" />
+                <div className="mb-4 text-3xl text-[#E2E8F0] transition-all duration-300 group-hover:text-[#EE634F] group-hover:scale-105">
+                  {item.icon}
+                </div>
+                <h3 className="text-[#E2E8F0] text-lg sm:text-xl font-semibold tracking-tight mb-1">{item.text}</h3>
+                <p className="text-[#C5CBD3]/90 text-sm leading-relaxed mb-5">{item.desc}</p>
+                <span className="inline-flex items-center gap-2 text-[#EE634F] font-semibold">
+                  Open
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform duration-300 group-hover:translate-x-1">
+                    <path d="M5 12h14" />
+                    <path d="m12 5 7 7-7 7" />
+                  </svg>
+                </span>
+                <div className="pointer-events-none absolute inset-0 rounded-2xl ring-0 ring-[#EE634F]/0 group-hover:ring-1 group-hover:ring-[#EE634F]/25 transition-all duration-300" />
+              </a>
+            ))}
+          </div>
+        </section>
 
         {/* Memories */}
         <section className="w-[95%] sm:w-[90%] mx-auto my-14">
@@ -320,22 +322,33 @@ function Home() {
             Memories Through the Years
           </h2>
           <Slider {...jubileeSettings}>
-            {jubileeImages.map((src, idx) => (
-              <div key={idx} className="px-2 sm:px-3">
-                <div className="rounded-xl sm:rounded-2xl overflow-hidden shadow-lg border-2 border-[#C5D7DC] p-0.5 bg-white">
-                  <img
-                    src={src}
-                    alt={`Memory ${idx + 1}`}
-                    className="w-full h-[200px] sm:h-[280px] md:h-[320px] lg:h-[400px] object-cover rounded-xl"
-                  />
+            {jubileeImages.map((url, idx) => {
+              const { src, srcSet } = buildCloudinarySources(url, memWidths, {
+                crop: "c_fill",
+                gravity: "g_auto",
+                quality: "q_auto",
+                fmt: "f_auto",
+                dpr: "dpr_auto",
+              });
+              return (
+                <div key={idx} className="px-2 sm:px-3">
+                  <div className="rounded-xl sm:rounded-2xl overflow-hidden shadow-lg border-2 border-[#C5D7DC] p-0.5 bg-white">
+                    <img
+                      src={src}
+                      srcSet={srcSet}
+                      sizes={memSizes}
+                      alt={`Memory ${idx + 1}`}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-[200px] sm:h-[280px] md:h-[320px] lg:h-[400px] object-cover rounded-xl"
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </Slider>
         </section>
       </div>
-
-      {/* removed old marquee styles */}
     </>
   );
 }
