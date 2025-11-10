@@ -21,13 +21,123 @@ function normalizeGoogleUser(anyUser) {
   return { sub, email, name, picture };
 }
 
-/* ---------- Helper: make receipt URL absolute to API ---------- */
+/* ---------- Helper: API base ---------- */
 const apiBase = (import.meta.env?.VITE_API_BASE_URL || "").replace(/\/+$/, "");
-const toPublicUrl = (u) => {
-  if (!u) return "";
-  if (/^https?:\/\//i.test(u)) return u;
-  return `${apiBase}${u.startsWith("/") ? u : `/${u}`}`;
-};
+
+/* ---------- ReceiptImage (user route first, then admin fallback) ---------- */
+function ReceiptImage({ googleProfile, apiBase, registrationId, refreshKey }) {
+  const [imgUrl, setImgUrl] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
+  const ranRef = React.useRef(false); // avoid double-run in dev StrictMode
+
+  useEffect(() => {
+    // reset for every refreshKey change
+    ranRef.current = false;
+  }, [refreshKey]);
+
+  React.useEffect(() => {
+    if (!googleProfile?.sub) return;
+    if (ranRef.current) return; // prevent double fetch in dev
+    ranRef.current = true;
+
+    let revoked = false;
+    let objectUrl = null;
+
+    const fetchReceipt = async () => {
+      setLoading(true);
+      setError(null);
+      setImgUrl(null);
+
+      try {
+        const authRaw = typeof window !== "undefined" ? localStorage.getItem("app_auth") : null;
+        const token = authRaw ? JSON.parse(authRaw).token : null;
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const buster = `t=${Date.now()}&v=${encodeURIComponent(refreshKey || "")}`;
+
+        // 1) Try user route first
+        const userHeaders = {
+          ...headers,
+          "x-oauth-uid": googleProfile?.sub,
+        };
+        const userUrl = `${apiBase}/api/event/registration/receipt?${buster}`;
+
+        const resUser = await fetch(userUrl, {
+          headers: userHeaders,
+          cache: "no-store",
+          credentials: "include",
+        });
+
+        if (resUser.ok) {
+          const blob = await resUser.blob();
+          if (revoked) return;
+          objectUrl = URL.createObjectURL(blob);
+          setImgUrl(objectUrl);
+          setLoading(false);
+          return;
+        }
+
+        // If 404/401/403 on user route, try admin fallback (if we have id)
+        if (registrationId) {
+          const adminUrl = `${apiBase}/api/admin/event/registrations/${registrationId}/receipt?${buster}`;
+          const resAdmin = await fetch(adminUrl, {
+            headers,
+            cache: "no-store",
+            credentials: "include",
+          });
+
+          if (resAdmin.ok) {
+            const blob = await resAdmin.blob();
+            if (revoked) return;
+            objectUrl = URL.createObjectURL(blob);
+            setImgUrl(objectUrl);
+            setLoading(false);
+            return;
+          }
+
+          if (resAdmin.status === 404) {
+            throw new Error("Receipt not found");
+          }
+        }
+
+        // Either user route failed without admin fallback, or both failed
+        const errorMsg =
+          resUser.status === 404 ? "Receipt not found" : `Failed to load receipt (status: ${resUser.status})`;
+        throw new Error(errorMsg);
+      } catch (err) {
+        setError(err.message || "Failed to load receipt");
+      } finally {
+        if (!revoked) setLoading(false);
+      }
+    };
+
+    fetchReceipt();
+
+    return () => {
+      revoked = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [googleProfile?.sub, apiBase, registrationId, refreshKey]);
+
+  return (
+    <div className="mt-2">
+      <p className="text-white/60">Receipt:</p>
+      {loading ? (
+        <div className="mt-2 text-white/70 text-sm">Loading receipt…</div>
+      ) : error ? (
+        <div className="mt-2 text-red-300 text-sm">{error}</div>
+      ) : imgUrl ? (
+        <img
+          src={imgUrl}
+          alt="Receipt"
+          className="mt-2 rounded-lg border border-white/10 max-h-72 object-contain"
+        />
+      ) : (
+        <div className="mt-2 text-white/70 text-sm">No receipt available.</div>
+      )}
+    </div>
+  );
+}
 
 export default function Registration() {
   const authRaw = typeof window !== "undefined" ? localStorage.getItem("app_auth") : null;
@@ -95,6 +205,7 @@ export default function Registration() {
     }
   }, []);
 
+  // load auth (or enrich from /api/auth/me)
   useEffect(() => {
     let stopped = false;
     (async () => {
@@ -118,14 +229,17 @@ export default function Registration() {
     return () => {
       stopped = true;
     };
-  }, []); // eslint-disable-line
+    // eslint-disable-next-line
+  }, []);
 
+  // check existing record
   useEffect(() => {
     if (!googleProfile?.sub) return;
     setIsChecking(true);
     fetchExisting(googleProfile.sub);
   }, [googleProfile?.sub, fetchExisting]);
 
+  // refresh if cached UID matches
   useEffect(() => {
     const cached = localStorage.getItem("registration_uid");
     if (cached && googleProfile?.sub && cached === googleProfile.sub) {
@@ -134,6 +248,7 @@ export default function Registration() {
     }
   }, [googleProfile?.sub, fetchExisting]);
 
+  // refresh when tab becomes visible
   useEffect(() => {
     const onVis = () => {
       if (document.visibilityState === "visible" && googleProfile?.sub) {
@@ -154,7 +269,6 @@ export default function Registration() {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = "Name is required";
 
-    // Batch must be 2000
     if (String(formData.batch) !== ALLOWED_BATCH) {
       newErrors.batch = `This event is only for batch ${ALLOWED_BATCH}`;
     }
@@ -198,7 +312,6 @@ export default function Registration() {
       setErrors((prev) => ({ ...prev, receiptFile: undefined }));
       return;
     }
-    // Batch is locked; prevent manual edits just in case
     if (name === "batch") return;
     setFormData((s) => ({ ...s, [name]: value }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: undefined }));
@@ -241,12 +354,12 @@ export default function Registration() {
       fd.append("oauthUid", me.sub);
       fd.append("oauthEmail", me.email);
       fd.append("name", formData.name);
-      fd.append("batch", ALLOWED_BATCH); // enforce on submit
+      fd.append("batch", ALLOWED_BATCH);
       fd.append("contact", formData.contact);
       fd.append("email", formData.email || me.email);
       fd.append("comingWithFamily", String(formData.comingWithFamily));
       fd.append("familyMembers", JSON.stringify(formData.familyMembers || []));
-      fd.append("amount", "0");
+      fd.append("amount", "0"); // server computes/validates
       if (formData.receiptFile) fd.append("receipt", formData.receiptFile);
 
       const userToken = auth?.token;
@@ -306,6 +419,7 @@ export default function Registration() {
       </div>
     ) : null;
 
+  /* ---------- Loading / guards ---------- */
   if (isLoadingAuth) {
     return (
       <div className="min-h-screen bg-[#1F1F1F] flex items-center justify-center p-4 pt-24">
@@ -350,7 +464,23 @@ export default function Registration() {
           <div className="w-full max-w-2xl bg-[#292929] rounded-2xl shadow-2xl p-8">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-3xl font-bold text-white">Your Registration</h2>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center flex-wrap gap-3">
+                {/* Stable status badge in header */}
+                <span
+                  className={[
+                    "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border",
+                    r.status === "APPROVED"
+                      ? "bg-green-600/20 text-green-300 border-green-500/30"
+                      : r.status === "REJECTED"
+                      ? "bg-red-600/20 text-red-300 border-red-500/30"
+                      : "bg-yellow-500/20 text-yellow-200 border-yellow-500/30",
+                  ].join(" ")}
+                  title={r.status || "PENDING"}
+                >
+                  <span className="inline-block w-2.5 h-2.5 rounded-full bg-current opacity-80" />
+                  {r.status || "PENDING"}
+                </span>
+
                 {r.status === "APPROVED" && String(r.batch) === ALLOWED_BATCH && (
                   <a
                     href="/room-allocation"
@@ -369,7 +499,7 @@ export default function Registration() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 mb-6 rounded-xl border border-white/10 bg-white/5 p-3">
+            <div className="flex items-center gap-3 mb-4 rounded-xl border border-white/10 bg-white/5 p-3">
               {googleProfile.picture && (
                 <img
                   src={googleProfile.picture}
@@ -384,20 +514,15 @@ export default function Registration() {
                 </p>
                 <p className="text-white/60">{googleProfile.email}</p>
               </div>
-            </div>
 
-            <div className="mb-4 flex items-center gap-2">
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                  r.status === "APPROVED"
-                    ? "bg-green-600 text-white"
-                    : r.status === "REJECTED"
-                    ? "bg-red-600 text-white"
-                    : "bg-yellow-600 text-white"
-                }`}
-              >
-                {r.status || "PENDING"}
-              </span>
+              {/* Right-aligned timestamp */}
+              <div className="ml-auto text-right text-xs text-white/60">
+                {r.approvedAt
+                  ? `Approved: ${new Date(r.approvedAt).toLocaleString()}`
+                  : r.createdAt
+                  ? `Submitted: ${new Date(r.createdAt).toLocaleString()}`
+                  : ""}
+              </div>
             </div>
 
             <div className="space-y-3 text-white/90">
@@ -418,27 +543,13 @@ export default function Registration() {
               )}
               <p><span className="text-white/60">Amount:</span> ₹{Number(r.amount || 0).toLocaleString("en-IN")}</p>
 
-              {r.receiptUrl && (
-                <div className="mt-2">
-                  <p className="text-white/60">Receipt:</p>
-                  <img
-                    src={toPublicUrl(r.receiptUrl)}
-                    alt="Receipt"
-                    className="mt-2 rounded-lg border border-white/10 max-h-72 object-contain"
-                    referrerPolicy="no-referrer"
-                    crossOrigin="anonymous"
-                    onError={(e) => {
-                      e.currentTarget.replaceWith(
-                        Object.assign(document.createElement("div"), {
-                          className: "mt-2 text-red-300 text-sm",
-                          innerText:
-                            "Could not load receipt image. Please reopen the page or contact support.",
-                        })
-                      );
-                    }}
-                  />
-                </div>
-              )}
+              {/* Receipt fetch & render */}
+              <ReceiptImage
+                googleProfile={googleProfile}
+                apiBase={apiBase}
+                registrationId={r._id}
+                refreshKey={r.updatedAt || r._id}
+              />
             </div>
 
             <p className="text-white/60 text-sm mt-6">
@@ -488,8 +599,6 @@ export default function Registration() {
           </div>
         </div>
 
-        {/* UPI card */}
-      
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block mb-2 text-gray-300">Name</label>
@@ -580,23 +689,34 @@ export default function Registration() {
                 </button>
               </div>
               {(formData.familyMembers || []).map((m, idx) => (
-                <div key={idx} className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-white/5 p-3 rounded-lg border border-white/10">
+                <div
+                  key={idx}
+                  className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-white/5 p-3 rounded-lg border border-white/10"
+                >
                   <div className="md:col-span-1">
                     <label className="block mb-1 text-gray-300 text-sm">Name</label>
                     <input
                       type="text"
                       value={m.name}
                       onChange={(e) => updateFamilyMember(idx, "name", e.target.value)}
-                      className={`w-full p-2.5 rounded-lg bg-[#333333] text-white focus:outline-none ${errors[`family_${idx}_name`] ? "border border-red-500" : "border border-[#444444]"}`}
+                      className={`w-full p-2.5 rounded-lg bg-[#333333] text-white focus:outline-none ${
+                        errors[`family_${idx}_name`] ? "border border-red-500" : "border border-[#444444]"
+                      }`}
                     />
-                    {errors[`family_${idx}_name`] && <p className="text-red-400 mt-1 text-sm">{errors[`family_${idx}_name`]}</p>}
+                    {errors[`family_${idx}_name`] && (
+                      <p className="text-red-400 mt-1 text-sm">{errors[`family_${idx}_name`]}</p>
+                    )}
                   </div>
                   <div className="md:col-span-1">
                     <label className="block mb-1 text-gray-300 text-sm">Relation</label>
                     <select
                       value={m.relation}
                       onChange={(e) => updateFamilyMember(idx, "relation", e.target.value)}
-                      className={`w-full p-2.5 rounded-lg bg-[#333333] text-white focus:outline-none ${errors[`family_${idx}_relation`] ? "border border-red-500" : "border border-[#444444]"}`}
+                      className={`w-full p-2.5 rounded-lg bg-[#333333] text-white focus:outline-none ${
+                        errors[`family_${idx}_relation`]
+                          ? "border border-red-500"
+                          : "border border-[#444444]"
+                      }`}
                     >
                       <option value="">Select</option>
                       <option value="Spouse">Spouse</option>
@@ -604,10 +724,18 @@ export default function Registration() {
                       <option value="Daughter">Daughter</option>
                       <option value="Other">Other</option>
                     </select>
-                    {errors[`family_${idx}_relation`] && <p className="text-red-400 mt-1 text-sm">{errors[`family_${idx}_relation`]}</p>}
+                    {errors[`family_${idx}_relation`] && (
+                      <p className="text-red-400 mt-1 text-sm">
+                        {errors[`family_${idx}_relation`]}
+                      </p>
+                    )}
                   </div>
                   <div className="md:col-span-1 flex items-end">
-                    <button type="button" onClick={() => removeFamilyMember(idx)} className="px-3 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm">
+                    <button
+                      type="button"
+                      onClick={() => removeFamilyMember(idx)}
+                      className="px-3 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm"
+                    >
                       Remove
                     </button>
                   </div>
@@ -622,58 +750,64 @@ export default function Registration() {
               ₹{totalAmount.toLocaleString("en-IN")}
             </p>
           </div>
-         {/* UPI card (responsive) */}
-<div className="mb-6 p-4 rounded-xl border border-white/10 bg-white/5">
-  <p className="text-white font-semibold mb-3">Pay via UPI</p>
 
-  <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-6">
-    <div className="flex justify-center sm:block">
-      <img
-        src="../../assets/QR.jpg"
-        alt="UPI QR"
-        className="w-28 h-28 sm:w-32 sm:h-32 rounded-lg border border-white/10 object-contain bg-white shrink-0"
-      />
-    </div>
+          {/* UPI card */}
+          <div className="mb-6 p-4 rounded-xl border border-white/10 bg-white/5">
+            <p className="text-white font-semibold mb-3">Pay via UPI</p>
 
-    <div className="text-white/80 text-sm flex-1 min-w-0">
-      {/* UPI line */}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-white/60 whitespace-nowrap">UPI ID:</span>
-        <span className="font-medium break-all">{UPI_ID}</span>
-        <button
-          type="button"
-          onClick={handleCopyUpi}
-          className="ml-1 inline-flex items-center rounded px-2 py-[2px] text-[11px]
-                     border border-white/15 bg-white/10 hover:bg-white/15 text-white/90 transition"
-          aria-label="Copy UPI ID"
-          title="Copy UPI ID"
-        >
-          {copiedUpi ? "Copied!" : "Copy"}
-        </button>
-      </div>
+            <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-6">
+              <div className="flex justify-center sm:block">
+                {/* If Vite fails to resolve, import:
+                   import qrImg from "../../assets/QR.jpg";
+                   <img src={qrImg} ... />
+                */}
+                <img
+                  src="../../assets/QR.jpg"
+                  alt="UPI QR"
+                  className="w-28 h-28 sm:w-32 sm:h-32 rounded-lg border border-white/10 object-contain bg-white shrink-0"
+                />
+              </div>
 
-      {/* Prices */}
-      <p className="mt-2">
-        <span className="text-white/60">Base Fee:</span>{" "}
-        ₹{BASE_PRICE.toLocaleString("en-IN")} (Alone)
-      </p>
-      <p>
-        <span className="text-white/60">Add-on:</span>{" "}
-        ₹{ADDON_PRICE.toLocaleString("en-IN")} per additional person
-      </p>
-    </div>
-  </div>
-</div>
+              <div className="text-white/80 text-sm flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-white/60 whitespace-nowrap">UPI ID:</span>
+                  <span className="font-medium break-all">Getepay.mbandhan118166</span>
+                  <button
+                    type="button"
+                    onClick={handleCopyUpi}
+                    className="ml-1 inline-flex items-center rounded px-2 py-[2px] text-[11px]
+                               border border-white/15 bg-white/10 hover:bg-white/15 text-white/90 transition"
+                    aria-label="Copy UPI ID"
+                    title="Copy UPI ID"
+                  >
+                    {copiedUpi ? "Copied!" : "Copy"}
+                  </button>
+                </div>
 
-
+                <p className="mt-2">
+                  <span className="text-white/60">Base Fee:</span>{" "}
+                  ₹{BASE_PRICE.toLocaleString("en-IN")} (Alone)
+                </p>
+                <p>
+                  <span className="text-white/60">Add-on:</span>{" "}
+                  ₹{ADDON_PRICE.toLocaleString("en-IN")} per additional person
+                </p>
+              </div>
+            </div>
+          </div>
 
           <div>
-            <label className="block mb-2 text-gray-300">Upload Payment Receipt (image)</label>
+            <label className="block mb-2 text-gray-300">
+              Upload Payment Receipt (image)
+              <span className="text-red-400 ml-1">*</span>
+            </label>
             <input
               type="file"
               accept="image/*"
               onChange={handleChange}
               name="receipt"
+              required
+              aria-required="true"
               className={`file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-[#EE634F] file:text-white file:cursor-pointer text-white ${
                 errors.receiptFile ? "border border-red-500" : "border border-[#444444]"
               } w-full p-2.5 rounded-lg bg-[#333333]`}

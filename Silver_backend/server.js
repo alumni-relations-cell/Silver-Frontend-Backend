@@ -11,6 +11,9 @@ import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
 
+/* --- NEW: for secure receipt delivery --- */
+import jwt from "jsonwebtoken";
+import Registration from "./models/Registration.js";
 
 import googleAuth from "./routes/googleAuth.js";       // keep your existing file
 import eventRoutes from "./routes/event.js";           // keep your existing file
@@ -109,6 +112,70 @@ const loginLimiter = rateLimit({
   message: { message: "Too many login attempts. Try again in 5 minutes." },
 });
 app.use("/api/admin/auth/login", loginLimiter);
+
+/* ---------- User receipt (binary) ---------- */
+/**
+ * GET /api/event/registration/receipt
+ * Returns the receipt image as binary.
+ * Security:
+ *  - If a valid admin JWT is presented (ADMIN_JWT_SECRET) AND ?id=<registrationId> provided,
+ *    allow fetch by id (admin use-case).
+ *  - Otherwise, require x-oauth-uid and return ONLY that user's receipt.
+ * Notes:
+ *  - CORS already allows x-oauth-uid; credentials are enabled.
+ *  - We do NOT alter any other auth flow.
+ */
+app.get("/api/event/registration/receipt", async (req, res) => {
+  try {
+    const auth = req.headers.authorization || "";
+    const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+
+    // check admin token (separate from user tokens; we don't change existing flows)
+    let isAdmin = false;
+    if (token && process.env.ADMIN_JWT_SECRET) {
+      try {
+        const payload = jwt.verify(token, process.env.ADMIN_JWT_SECRET);
+        if (payload && (payload.isAdmin || payload.role === "admin" || payload.sub)) {
+          isAdmin = true;
+        }
+      } catch {
+        // not an admin token, continue as user
+      }
+    }
+
+    let reg = null;
+
+    if (isAdmin && req.query.id) {
+      // Admin fetching any registration via ?id=<registrationId>
+      reg = await Registration.findById(req.query.id).lean(false);
+    } else {
+      // User fetching own receipt via oauthUid (ownership by field match)
+      const oauthUid =
+        req.get("x-oauth-uid") ||
+        req.get("X-Oauth-Uid") ||
+        req.query.oauthUid ||
+        null;
+
+      if (!oauthUid) {
+        return res.status(401).json({ message: "Missing x-oauth-uid" });
+      }
+
+      reg = await Registration.findOne({ oauthUid }).lean(false);
+    }
+
+    if (!reg || !reg.receipt || !reg.receipt.data) {
+      return res.status(404).json({ message: "Receipt not found" });
+    }
+
+    const ct = reg.receipt.contentType || "application/octet-stream";
+    res.set("Content-Type", ct);
+    res.set("Cache-Control", "private, no-store");
+    res.send(reg.receipt.data);
+  } catch (err) {
+    console.error("receipt fetch error:", err?.message || err);
+    res.status(500).json({ message: "Failed to load receipt" });
+  }
+});
 
 /* ---------- Routes (API unchanged) ---------- */
 app.use("/api/auth", googleAuth);

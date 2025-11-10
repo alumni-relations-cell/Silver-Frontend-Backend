@@ -82,7 +82,7 @@ const registrationSchema = new Schema(
     receipt: {
       data: Buffer,
       contentType: String,
-      originalName: String
+      originalName: String, 
     },
     paymentRef: { type: String, trim: true }, // optional: UTR/transaction id
 
